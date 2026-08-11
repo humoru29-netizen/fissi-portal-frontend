@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>FISSI Connect — Faith International Secondary School, Itobe</title>
+<!-- Firebase: used only when this page is hosted on the open web (not inside a Claude
+     artifact). Fill in FIREBASE_CONFIG further down with your own project's values. -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
+
+  :root{
+    --navy:#0B1F3B; --navy-deep:#081729; --wine:#6E1F2E; --wine-deep:#551723;
+    --gold:#C9A24B; --gold-soft:#E4CE95; --parch:#F6F1E4; --ink:#1C1712;
+    --line:#e6dcc0; --tile:#f4eeda;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--parch); color:var(--ink); font-family:'Source Sans 3', system-ui, sans-serif; -webkit-tap-highlight-color: transparent;}
+  h1,h2,h3{font-family:'Playfair Display', Georgia, serif; margin:0;}
+  button{font-family:inherit; cursor:pointer;}
+  input, select{font-family:inherit;}
+
+  header.topbar{background:var(--navy); border-bottom:1px solid var(--navy-deep);}
+  .topbar-inner{max-width:900px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;}
+  .brand{display:flex; align-items:center; gap:10px; background:none; border:none; padding:0; cursor:pointer;}
+  .brand-name{color:var(--gold-soft); font-weight:700; font-size:15px; line-height:1.2; text-align:left;}
+  .brand-sub{color:#b9c2d4; font-size:10.5px; letter-spacing:.03em;}
+  .session-chip{color:#cdd5e3; font-size:12px; margin-right:8px;}
+  .logout-btn{background:var(--wine); color:var(--parch); border:none; border-radius:6px; padding:7px 12px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:5px;}
+
+  main{max-width:900px; margin:0 auto; padding:0 16px 48px;}
+  footer{text-align:center; font-size:12px; color:#7a7263; padding:24px 16px;}
+  footer b{color:var(--wine);}
+
+  .toast{position:fixed; top:16px; right:16px; left:16px; z-index:50; background:var(--navy); color:var(--parch); border-radius:8px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,.25); max-width:420px; margin-left:auto;}
+  .toast.bad{background:#7a2c2c;}
+
+  .card{background:#fffdf8; border:1px solid var(--line); border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .card.pad{padding:20px;}
+
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:6px; padding:11px 16px; font-size:14px; font-weight:700; border:none; transition:filter .15s;}
+  .btn:hover{filter:brightness(1.08);}
+  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  .btn.primary{background:var(--wine); color:var(--parch);}
+  .btn.navy{background:var(--navy); color:var(--parch);}
+  .btn.gold{background:var(--gold); color:var(--navy-deep);}
+  .btn.ghost{background:transparent; color:var(--navy); border:1.5px solid var(--navy);}
+  .btn.danger{background:#7a2c2c; color:#fbe9e9;}
+  .btn.block{width:100%;}
+  .btn.sm{padding:7px 12px; font-size:12px;}
+
+  .field{display:block; margin-bottom:14px;}
+  .field-label{display:block; font-size:11px; font-weight:700; letter-spacing:.02em; color:var(--navy); margin-bottom:5px;}
+  .input{width:100%; border-radius:6px; border:1px solid #d8cfb8; background:#fffdf8; padding:10px 12px; font-size:14px; color:var(--ink);}
+  .input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+
+  .role-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
+  .role-opt{border-radius:6px; padding:9px 10px; font-size:12px; font-weight:700; border:1px solid #d8cfb8; background:transparent; color:var(--navy);}
+  .role-opt.active{background:var(--navy); color:var(--parch); border-color:var(--navy);}
+
+  .err-box{font-size:12px; margin-bottom:12px; border-radius:6px; padding:9px 12px; background:#f5dcdc; color:#8a2020;}
+  .center-note{font-size:12px; text-align:center; margin-top:16px; color:#8a8375;}
+  .center-note a, .link-btn{font-weight:700; color:var(--wine); text-decoration:underline; background:none; border:none; font-size:inherit; cursor:pointer; padding:0;}
+  .fine-note{font-size:11px; text-align:center; margin-top:12px; color:#b0a996;}
+
+  .hero{padding-top:48px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:18px;}
+  .hero h1{font-size:24px; font-weight:800; color:var(--navy); max-width:560px;}
+  .hero p{max-width:520px; font-size:14px; color:#6b6255; margin:0;}
+  .hero-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:center;}
+  .tiles{display:grid; grid-template-columns:1fr; gap:14px; margin-top:44px;}
+  @media(min-width:680px){ .tiles{grid-template-columns:1fr 1fr 1fr;} .role-grid{grid-template-columns:repeat(4,1fr);} }
+  .tile h3{font-size:15px; color:var(--navy); margin:8px 0 4px;}
+  .tile p{font-size:12px; color:#8a8375; line-height:1.5; margin:0;}
+
+  .auth-wrap{max-width:380px; margin:36px auto 0;}
+
+  .section-title{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
+  .section-title h2{font-size:17px; font-weight:700; color:var(--navy);}
+  .section-sub{font-size:12px; color:#8a8375; margin:2px 0 16px;}
+
+  .tabs{display:flex; gap:5px; overflow-x:auto; padding-bottom:6px; margin-bottom:20px;}
+  .tab{white-space:nowrap; border:none; border-radius:6px; padding:9px 14px; font-size:12px; font-weight:700; background:var(--tile); color:var(--navy);}
+  .tab.active{background:var(--wine); color:var(--parch);}
+
+  .row-item{display:flex; align-items:center; justify-content:between; justify-content:space-between; border-bottom:1px solid #eee3c9; padding:11px 0; gap:10px;}
+  .row-item:last-child{border-bottom:none;}
+  .row-title{font-weight:700; font-size:13.5px; color:var(--navy); margin:0 0 2px;}
+  .row-sub{font-size:11.5px; color:#8a8375; margin:0;}
+  .row-actions{display:flex; gap:6px; flex-shrink:0;}
+
+  .pill{display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:4px 10px; font-size:11px; font-weight:700; white-space:nowrap;}
+  .pill.neutral{background:#eee6cf; color:var(--navy);}
+  .pill.good{background:#dcefdd; color:#1e5c2c;}
+  .pill.warn{background:#f6e6c8; color:#8a5a10;}
+  .pill.bad{background:#f5dcdc; color:#8a2020;}
+
+  .empty{text-align:center; padding:36px 14px; font-size:13px; color:#8a8375; border:1.5px dashed #d8cfb8; border-radius:8px;}
+
+  .two-col{display:grid; grid-template-columns:1fr; gap:16px;}
+  @media(min-width:680px){ .two-col{grid-template-columns:1fr 1fr;} }
+  .search-list{margin-top:12px; max-height:230px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;}
+  .search-item{width:100%; display:flex; align-items:center; justify-content:space-between; border-radius:6px; padding:9px 12px; font-size:13.5px; text-align:left; border:none; background:var(--tile); color:var(--ink);}
+  .search-item.active{background:var(--gold); color:var(--navy-deep); font-weight:700;}
+
+  .subject-row{display:flex; align-items:center; justify-content:space-between; border-radius:6px; padding:9px 12px; font-size:13.5px; background:var(--tile); margin-bottom:6px;}
+  .subject-row button{background:none; border:none; color:#a53535; font-size:16px; line-height:1;}
+
+  .crest-svg{display:block;}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+
+<script>
+/* ------------------------------------------------------------------ */
+/* PROTOTYPE NOTE                                                      */
+/* This is a front-end demo. School data lives in the artifact's       */
+/* shared storage, so everyone who opens this page sees the same       */
+/* records. There is no real authentication or encryption — treat this */
+/* as a clickable spec of the FISSI portal, not production security.   */
+/* ------------------------------------------------------------------ */
+
+const KEYS = { users: "fissi:users", subjects: "fissi:subjects", academics: "fissi:academics", fees: "fissi:fees", classes: "fissi:classes" };
+const DEFAULT_SUBJECTS = ["English Language","Mathematics","Civic Education","Basic Science","Agricultural Science","French"];
+const DEFAULT_CLASSES = ["JSS 1","JSS 2","JSS 3","SS 1","SS 2","SS 3"];
+const TERMS = ["1st Term","2nd Term","3rd Term"];
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+/* ------------------------------------------------------------------ */
+/* FIREBASE SETUP                                                       */
+/* Paste your own project's config here (Firebase console > Project    */
+/* settings > General > Your apps > SDK setup and configuration).      */
+/* Leave the placeholder as-is and the app will just run locally with  */
+/* no cross-device sync — nothing breaks, it just won't share data.    */
+/* ------------------------------------------------------------------ */
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_YOUR_API_KEY_HERE",
+  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID",
+};
+
+let firestoreDb = null;
+try {
+  if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("PASTE_YOUR") !== 0 && window.firebase) {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    firestoreDb = firebase.firestore();
+  }
+} catch (e) {
+  console.error("Firebase did not initialize — running in local-only mode.", e);
+  firestoreDb = null;
+}
+
+function hasClaudeStorage(){
+  return !!(window.storage && typeof window.storage.get === "function" && typeof window.storage.set === "function");
+}
+
+function loadKey(key, fallback){
+  // 1) Claude's artifact storage, if we're running inside a Claude conversation
+  if (hasClaudeStorage()){
+    try {
+      return window.storage.get(key, true)
+        .then(r => r ? JSON.parse(r.value) : fallback)
+        .catch(() => fallback);
+    } catch (e) { return Promise.resolve(fallback); }
+  }
+  // 2) Firebase, if configured — this is what makes the hosted version shared
+  if (firestoreDb){
+    return firestoreDb.collection("fissi_data").doc(key).get()
+      .then(doc => (doc.exists && doc.data().value) ? JSON.parse(doc.data().value) : fallback)
+      .catch(e => { console.error("firestore get failed", key, e); return fallback; });
+  }
+  // 3) Nothing configured — local-only, in-memory for this tab only
+  return Promise.resolve(fallback);
+}
+
+// Saves never block the UI — they run in the background and retry a couple
+// of times on transient server errors. If they still fail, the change stays
+// live in this tab's memory and a small "sync" note appears instead of a
+// raw console error, so a backend hiccup can't make the app look broken.
+function saveKey(key, value, attempt){
+  attempt = attempt || 0;
+  const markOk = () => { if (state.syncIssue) { state.syncIssue = false; render(); } };
+  const markFailed = (e) => {
+    console.error("storage set failed", key, attempt, e);
+    if (attempt < 2) {
+      setTimeout(() => saveKey(key, value, attempt + 1), 700 * (attempt + 1));
+    } else {
+      state.syncIssue = true;
+      render();
+    }
+  };
+  try {
+    if (hasClaudeStorage()){
+      window.storage.set(key, JSON.stringify(value), true).then(markOk).catch(markFailed);
+      return;
+    }
+    if (firestoreDb){
+      firestoreDb.collection("fissi_data").doc(key).set({ value: JSON.stringify(value) }).then(markOk).catch(markFailed);
+      return;
+    }
+    // nothing configured — nothing to save to, silently stays local-only
+  } catch (e) {
+    markFailed(e);
+  }
+}
+
+const state = {
+  loading: true,
+  users: [],
+  subjects: DEFAULT_SUBJECTS.slice(),
+  classes: DEFAULT_CLASSES.slice(),
+  academics: { results: [], assignments: [] },
+  fees: [],
+  session: null,
+  screen: "home",
+  toast: null,
+  // transient UI state per screen
+  ui: {}
+};
+
+function setState(patch){ Object.assign(state, patch); render(); }
+function setUI(patch){ state.ui = Object.assign({}, state.ui, patch); render(); }
+function notify(msg, tone){
+  state.toast = { msg, tone: tone || "good" };
+  render();
+  clearTimeout(notify._t);
+  notify._t = setTimeout(() => { state.toast = null; render(); }, 3200);
+}
+
+async function init(){
+  try {
+    const [u, s, a, f, c] = await Promise.all([
+      loadKey(KEYS.users, []),
+      loadKey(KEYS.subjects, DEFAULT_SUBJECTS),
+      loadKey(KEYS.academics, { results: [], assignments: [] }),
+      loadKey(KEYS.fees, []),
+      loadKey(KEYS.classes, DEFAULT_CLASSES),
+    ]);
+    let users = u;
+    if (!users.length){
+      users = [{ id: uid(), name: "School Administrator", username: "admin", password: "admin123", role: "admin", status: "approved" }];
+      saveKey(KEYS.users, users);
+    }
+    Object.assign(state, { loading:false, users, subjects: s, academics: a, fees: f, classes: (c && c.length ? c : DEFAULT_CLASSES.slice()) });
+  } catch (e) {
+    console.error("init failed, falling back to a fresh local session", e);
+    Object.assign(state, {
+      loading:false,
+      users: [{ id: uid(), name: "School Administrator", username: "admin", password: "admin123", role: "admin", status: "approved" }],
+      subjects: DEFAULT_SUBJECTS.slice(),
+      classes: DEFAULT_CLASSES.slice(),
+      academics: { results: [], assignments: [] },
+      fees: [],
+    });
+  }
+  render();
+}
+
+function persistUsers(next){ state.users = next; saveKey(KEYS.users, next); }
+function persistSubjects(next){ state.subjects = next; saveKey(KEYS.subjects, next); }
+function persistAcademics(next){ state.academics = next; saveKey(KEYS.academics, next); }
+function persistFees(next){ state.fees = next; saveKey(KEYS.fees, next); }
+function feeAdjTotal(f){ return f && f.adjustments ? f.adjustments.reduce((sum,a)=>sum+a.amount,0) : 0; }
+function feeTotalDue(f){ return f ? f.amountDue + feeAdjTotal(f) : 0; }
+function addFeeAdjustment(studentId, term, label, amount){
+  label = (label||"").trim();
+  amount = Number(amount);
+  if (!label || !amount){ notify("Enter a label and a non-zero amount.","bad"); return; }
+  const existing = state.fees.find(f=>f.studentId===studentId && f.term===term);
+  const adj = { id: uid(), label, amount };
+  const record = existing
+    ? { ...existing, adjustments: (existing.adjustments||[]).concat([adj]) }
+    : { id: uid(), studentId, term, amountDue: 0, amountPaid: 0, adjustments: [adj] };
+  const next = existing ? state.fees.map(f=>f.id===existing.id?record:f) : state.fees.concat([record]);
+  persistFees(next);
+  notify((amount>0?"Charge":"Discount") + " added to fee record.");
+  render();
+}
+function removeFeeAdjustment(studentId, term, adjId){
+  const existing = state.fees.find(f=>f.studentId===studentId && f.term===term);
+  if (!existing) return;
+  const record = { ...existing, adjustments: (existing.adjustments||[]).filter(a=>a.id!==adjId) };
+  persistFees(state.fees.map(f=>f.id===existing.id?record:f));
+  notify("Adjustment removed.");
+  render();
+}
+function feeAdjustmentPanel(studentId, term, scope){
+  if (!studentId) return "";
+  const f = state.fees.find(x=>x.studentId===studentId && x.term===term);
+  const adjustments = f ? (f.adjustments||[]) : [];
+  const totalDue = feeTotalDue(f);
+  const paid = f ? f.amountPaid : 0;
+  return `<div class="card pad" style="margin-top:16px;">
+    <div class="section-title"><h2>Fee adjustments — ${esc(term)}</h2></div>
+    <p class="section-sub">Add extra charges (e.g. PTA levy, late fee) or discounts (e.g. scholarship) on top of the base fee. Use a negative amount for a discount.</p>
+    <div style="display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:4px;"><span style="color:#8a8375;">Base amount due</span><b style="color:var(--navy);">₦${(f?f.amountDue:0).toLocaleString()}</b></div>
+    <div style="display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:4px;"><span style="color:#8a8375;">Adjustments</span><b style="color:var(--navy);">${feeAdjTotal(f)>=0?"+":""}₦${feeAdjTotal(f).toLocaleString()}</b></div>
+    <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:12px; border-top:1px solid var(--line); padding-top:8px;"><span style="color:#8a8375;">Total due</span><b style="color:var(--wine);">₦${totalDue.toLocaleString()}</b></div>
+    ${adjustments.length===0 ? `<div class="empty">No adjustments yet.</div>` :
+      adjustments.map(a => `<div class="row-item"><span style="font-size:13.5px; color:var(--navy);">${esc(a.label)}</span><span style="display:flex; align-items:center; gap:8px;"><b style="color:${a.amount<0?'#2f7a3d':'var(--wine)'};">${a.amount>=0?"+":""}₦${a.amount.toLocaleString()}</b><button class="btn danger sm" onclick="removeFeeAdjustment('${studentId}','${term}','${a.id}')">✕</button></span></div>`).join("")
+    }
+    <form onsubmit="return handleAddAdjustment(event,'${studentId}','${term}','${scope}')" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+      <input class="input" id="adjLabel_${scope}" placeholder="e.g. PTA levy or Scholarship" style="flex:2; min-width:140px;" />
+      <input class="input" id="adjAmount_${scope}" type="number" placeholder="Amount (± ₦)" style="flex:1; min-width:110px;" />
+      <button class="btn navy" type="submit">Add</button>
+    </form>
+  </div>`;
+}
+function handleAddAdjustment(e, studentId, term, scope){
+  e.preventDefault();
+  const label = document.getElementById("adjLabel_"+scope).value;
+  const amount = document.getElementById("adjAmount_"+scope).value;
+  addFeeAdjustment(studentId, term, label, amount);
+  return false;
+}
+function persistClasses(next){ state.classes = next; saveKey(KEYS.classes, next); }
+
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ------------------------------------------------------------------ */
+/* CREST                                                                */
+/* ------------------------------------------------------------------ */
+function crestSVG(size){
+  size = size || 100;
+  const h = Math.round(size*1.18);
+  return `
+  <svg class="crest-svg" width="${size}" height="${h}" viewBox="0 0 220 260" role="img" aria-label="FISSI crest">
+    <defs>
+      <linearGradient id="shieldGold" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#DBBB6E" /><stop offset="100%" stop-color="#B78F38" />
+      </linearGradient>
+    </defs>
+    <path d="M110 6 L204 34 V120 C204 176 166 220 110 250 C54 220 16 176 16 120 V34 Z" fill="url(#shieldGold)" stroke="#0B1F3B" stroke-width="4"/>
+    <path d="M110 16 L196 42 V120 C196 170 162 210 110 238 C58 210 24 170 24 120 V42 Z" fill="url(#shieldGold)" stroke="#0B1F3B" stroke-width="1.5" opacity="0.4"/>
+    <path d="M30 92 L190 158 L182 190 L22 124 Z" fill="#551723"/>
+    <path id="sashPath" d="M28 100 L186 164" fill="none"/>
+    <text fill="#F6F1E4" font-size="10.5" font-weight="700" letter-spacing="0.5">
+      <textPath href="#sashPath" startOffset="50%" text-anchor="middle">FAITH INT'L SEC. SCHOOL ITOBE</textPath>
+    </text>
+    <g transform="translate(128,42) rotate(18)">
+      <rect x="0" y="0" width="8" height="34" rx="3" fill="#0B1F3B"/>
+      <path d="M4 0 C -4 -14, 14 -14, 4 -2 Z" fill="#F6F1E4" stroke="#0B1F3B" stroke-width="1.2"/>
+    </g>
+    <g transform="translate(140,150)">
+      <path d="M0 30 C10 10 34 6 40 22 C44 30 34 34 26 30 C34 40 20 46 10 38 C4 34 -2 34 0 30 Z" fill="#F6F1E4" stroke="#0B1F3B" stroke-width="1.3"/>
+      ${[...Array(10)].map((_,i)=>`<circle cx="${6+(i%5)*6}" cy="${20+Math.floor(i/5)*8}" r="1.4" fill="#081729"/>`).join("")}
+    </g>
+    <g transform="translate(38,158)">
+      <rect x="0" y="14" width="46" height="10" rx="2" fill="#0B1F3B"/>
+      <rect x="4" y="4" width="46" height="10" rx="2" fill="#F6F1E4" stroke="#0B1F3B" stroke-width="1.2"/>
+      <rect x="0" y="-6" width="46" height="10" rx="2" fill="#0B1F3B"/>
+    </g>
+    <g transform="translate(0,238)">
+      <path d="M10 10 L60 0 L60 22 L14 30 Z" fill="#0B1F3B"/>
+      <path d="M210 10 L160 0 L160 22 L206 30 Z" fill="#0B1F3B"/>
+      <rect x="45" y="0" width="130" height="24" fill="#0B1F3B"/>
+      <text x="110" y="16" fill="#C9A24B" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1">IN GOD WE TRUST</text>
+    </g>
+  </svg>`;
+}
+
+/* ------------------------------------------------------------------ */
+/* RENDER ROOT                                                          */
+/* ------------------------------------------------------------------ */
+function render(){
+  const app = document.getElementById("app");
+  if (state.loading){
+    app.innerHTML = `<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
+      ${crestSVG(64)}<p style="font-size:13px; color:var(--navy);">Loading FISSI portal…</p>
+    </div>`;
+    return;
+  }
+
+  let body = "";
+  if (!state.session){
+    if (state.screen === "login") body = renderLogin();
+    else if (state.screen === "signup") body = renderSignup();
+    else body = renderHome();
+  } else {
+    body = renderDashboard();
+  }
+
+  app.innerHTML = `
+    <header class="topbar">
+      <div class="topbar-inner">
+        <button class="brand" onclick="goHome()">
+          ${crestSVG(40)}
+          <span>
+            <span class="brand-name" style="display:block;">Faith International Secondary School</span>
+            <span class="brand-sub" style="display:block;">ITOBE · OFU LGA · KOGI STATE</span>
+          </span>
+        </button>
+        ${state.session ? `
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span class="session-chip">${esc(state.session.name)} · <span style="text-transform:capitalize;">${esc(state.session.role)}</span></span>
+            <button class="logout-btn" onclick="logout()">Log out</button>
+          </div>` : ""}
+      </div>
+    </header>
+    ${state.toast ? `<div class="toast ${state.toast.tone==='bad'?'bad':''}">${esc(state.toast.msg)}</div>` : ""}
+    ${state.syncIssue ? `<div class="toast" style="top:auto; bottom:16px; background:#8a5a10;">Having trouble syncing to the server right now — your changes are saved on this device and will keep retrying.</div>` : ""}
+    <main>${body}</main>
+    <footer>Faith International Secondary School, Itobe — Ofu LGA, Kogi State · <b>In God We Trust</b></footer>
+  `;
+}
+
+function goHome(){ if(!state.session){ state.screen="home"; render(); } }
+function logout(){ state.session=null; state.screen="home"; state.ui={}; render(); }
+
+/* ------------------------------------------------------------------ */
+/* HOME                                                                 */
+/* ------------------------------------------------------------------ */
+function renderHome(){
+  return `
+    <div class="hero">
+      ${crestSVG(120)}
+      <h1>Faith International Secondary School, Itobe</h1>
+      <p>One portal for students, teachers, cashiers and administrators — results, assignments, fees and school records, all in one place.</p>
+      <div class="hero-actions">
+        <button class="btn primary" onclick="state.screen='login'; render();">Log in</button>
+        <button class="btn ghost" onclick="state.screen='signup'; render();">Create an account</button>
+      </div>
+    </div>
+    <div class="tiles">
+      <div class="card pad tile"><h3>For students</h3><p>Check results once approved, track assignments and exams, and see your fee balance.</p></div>
+      <div class="card pad tile"><h3>For teachers</h3><p>Enter scores, set assignments and exams, and check who still owes fees.</p></div>
+      <div class="card pad tile"><h3>For admin &amp; cashiers</h3><p>Approve accounts and results, manage subjects, and record fee payments.</p></div>
+    </div>
+  `;
+}
+
+/* ------------------------------------------------------------------ */
+/* LOGIN                                                                */
+/* ------------------------------------------------------------------ */
+function renderLogin(){
+  const err = state.ui.loginErr || "";
+  return `
+  <div class="auth-wrap">
+    <div class="card pad">
+      <div class="section-title"><h2>Log in</h2></div>
+      <form onsubmit="return doLogin(event)">
+        <label class="field"><span class="field-label">Username</span>
+          <input class="input" id="loginUsername" value="${esc(state.ui.loginUsername||"")}" />
+        </label>
+        <label class="field"><span class="field-label">Password</span>
+          <input class="input" type="password" id="loginPassword" value="${esc(state.ui.loginPassword||"")}" />
+        </label>
+        ${err ? `<div class="err-box">${esc(err)}</div>` : ""}
+        <button class="btn primary block" type="submit">Log in</button>
+      </form>
+      <p class="center-note">New here? <button class="link-btn" onclick="state.screen='signup'; render();">Create an account</button></p>
+      <p class="fine-note">Default admin — username <b>admin</b>, password <b>admin123</b></p>
+    </div>
+  </div>`;
+}
+function doLogin(e){
+  e.preventDefault();
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value;
+  const u = state.users.find(x => x.username.toLowerCase()===username.toLowerCase() && x.password===password);
+  if (!u){ setUI({loginErr:"Username or password is incorrect.", loginUsername:username, loginPassword:password}); return false; }
+  if (u.status === "pending"){ setUI({loginErr:"Your account is awaiting admin approval. Please check back soon.", loginUsername:username, loginPassword:password}); return false; }
+  state.session = u; state.screen="dashboard"; state.ui={};
+  render();
+  notify("Welcome back, " + u.name.split(" ")[0] + ".");
+  return false;
+}
+
+/* ------------------------------------------------------------------ */
+/* SIGNUP                                                               */
+/* ------------------------------------------------------------------ */
+function renderSignup(){
+  const role = state.ui.signupRole || "student";
+  const err = state.ui.signupErr || "";
+  const roles = [["student","Student"],["teacher","Teacher"],["cashier","Cashier"],["admin","Admin"]];
+  return `
+  <div class="auth-wrap">
+    <div class="card pad">
+      <div class="section-title"><h2>Create an account</h2></div>
+      <p class="section-sub">New accounts are reviewed by an admin before you can sign in.</p>
+      <form onsubmit="return doSignup(event)">
+        <label class="field"><span class="field-label">Full name</span>
+          <input class="input" id="suName" value="${esc(state.ui.suName||"")}" oninput="state.ui.suName=this.value" />
+        </label>
+        <label class="field"><span class="field-label">Username</span>
+          <input class="input" id="suUsername" value="${esc(state.ui.suUsername||"")}" oninput="state.ui.suUsername=this.value" />
+        </label>
+        <label class="field"><span class="field-label">Password</span>
+          <input class="input" type="password" id="suPassword" value="${esc(state.ui.suPassword||"")}" oninput="state.ui.suPassword=this.value" />
+        </label>
+        <div class="field">
+          <span class="field-label">I am a…</span>
+          <div class="role-grid">
+            ${roles.map(([v,label]) => `<button type="button" class="role-opt ${role===v?'active':''}" onclick="setUI({signupRole:'${v}'})">${label}</button>`).join("")}
+          </div>
+        </div>
+        ${role === "student" ? `
+        <label class="field"><span class="field-label">Class</span>
+          <select class="input" id="suClass" onchange="state.ui.suClass=this.value">
+            ${state.classes.map(c => `<option ${((state.ui.suClass||state.classes[0])===c)?'selected':''}>${esc(c)}</option>`).join("")}
+          </select>
+        </label>
+        <label class="field"><span class="field-label">Admission number</span>
+          <input class="input" id="suAdmissionNo" placeholder="e.g. FISSI/2024/013" value="${esc(state.ui.suAdmissionNo||"")}" oninput="state.ui.suAdmissionNo=this.value" />
+        </label>` : ""}
+        ${err ? `<div class="err-box">${esc(err)}</div>` : ""}
+        <button class="btn primary block" type="submit">Sign up</button>
+      </form>
+      <p class="center-note">Already registered? <button class="link-btn" onclick="state.screen='login'; render();">Log in</button></p>
+    </div>
+  </div>`;
+}
+function doSignup(e){
+  e.preventDefault();
+  const name = document.getElementById("suName").value.trim();
+  const username = document.getElementById("suUsername").value.trim();
+  const password = document.getElementById("suPassword").value;
+  const role = state.ui.signupRole || "student";
+  if (!name || !username || !password){
+    setUI({signupErr:"Please fill in every field.", suName:name, suUsername:username});
+    return false;
+  }
+  if (state.users.some(u => u.username.toLowerCase()===username.toLowerCase())){
+    setUI({signupErr:"That username is already taken.", suName:name, suUsername:username});
+    return false;
+  }
+  const studentClass = role === "student" ? (state.ui.suClass || state.classes[0] || "") : undefined;
+  const admissionNo = role === "student" ? (document.getElementById("suAdmissionNo").value.trim() || undefined) : undefined;
+  const newUser = { id: uid(), name, username, password, role, status: "pending", studentClass, admissionNo };
+  persistUsers(state.users.concat([newUser]));
+  state.screen = "login"; state.ui = {};
+  render();
+  notify("Account created. An admin needs to approve it before you can log in.");
+  return false;
+}
+
+/* ------------------------------------------------------------------ */
+/* DASHBOARD ROUTER                                                     */
+/* ------------------------------------------------------------------ */
+function renderDashboard(){
+  const role = state.session.role;
+  if (role==="admin") return renderAdmin();
+  if (role==="teacher") return renderTeacher();
+  if (role==="cashier") return renderCashier();
+  return renderStudent();
+}
+function tabsHTML(tabs, activeKey, onClickFn){
+  return `<div class="tabs">${tabs.map(t => `<button class="tab ${activeKey===t.key?'active':''}" onclick="${onClickFn}('${t.key}')">${esc(t.label)}</button>`).join("")}</div>`;
+}
+function pill(tone, text){ return `<span class="pill ${tone}">${esc(text)}</span>`; }
+
+/* ---------------------------- STUDENT -------------------------------- */
+function setStudentTab(k){ setUI({studentTab:k}); }
+function renderStudent(){
+  const tab = state.ui.studentTab || "results";
+  const s = state.session;
+  const myResults = state.academics.results.filter(r => r.studentId===s.id);
+  const myAssignments = state.academics.assignments;
+  const myFee = state.fees.find(f => f.studentId===s.id);
+
+  let inner = "";
+  if (tab === "results"){
+    inner = `<div class="card pad">
+      ${myResults.length===0 ? `<div class="empty">No results have been entered for you yet.</div>` :
+        myResults.map(r => `
+          <div class="row-item">
+            <div><p class="row-title">${esc(r.subject)}</p><p class="row-sub">${esc(r.term)}${r.approved && r.remark ? " · "+esc(r.remark) : ""}</p></div>
+            ${r.approved ? `<span style="font-size:20px; font-weight:800; color:var(--wine);">${r.score}<span style="font-size:11px; color:#b0a996;">/100</span></span>` : pill("warn","Awaiting admin approval")}
+          </div>`).join("")
+      }
+      <p style="font-size:11px; color:#b0a996; margin-top:14px;">Results only appear here — and can only be printed — once an admin has approved them.</p>
+    </div>`;
+  } else if (tab === "work"){
+    inner = `<div class="card pad">
+      ${myAssignments.length===0 ? `<div class="empty">Nothing has been assigned yet.</div>` :
+        myAssignments.map(a => `
+          <div class="row-item">
+            <div><p class="row-title">${esc(a.title)}</p><p class="row-sub">${esc(a.subject)}</p></div>
+            ${pill(a.type==="exam"?"bad":"neutral", (a.type==="exam"?"Exam":"Assignment")+" · due "+a.dueDate)}
+          </div>`).join("")
+      }
+    </div>`;
+  } else {
+    inner = `<div class="card pad">
+      ${!myFee ? `<div class="empty">No fee record has been set up for you yet — please see the cashier.</div>` : `
+        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px;"><span style="color:#8a8375;">Term</span><b style="color:var(--navy);">${esc(myFee.term)}</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px;"><span style="color:#8a8375;">Base amount due</span><b style="color:var(--navy);">₦${myFee.amountDue.toLocaleString()}</b></div>
+        ${(myFee.adjustments||[]).map(a => `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; padding-left:8px;"><span style="color:#8a8375;">${esc(a.label)}</span><b style="color:${a.amount<0?'#2f7a3d':'var(--wine)'};">${a.amount>=0?"+":""}₦${a.amount.toLocaleString()}</b></div>`).join("")}
+        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px; border-top:1px solid var(--line); padding-top:8px;"><span style="color:#8a8375;">Total due</span><b style="color:var(--navy);">₦${feeTotalDue(myFee).toLocaleString()}</b></div>
+        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:12px;"><span style="color:#8a8375;">Amount paid</span><b style="color:var(--navy);">₦${myFee.amountPaid.toLocaleString()}</b></div>
+        ${myFee.amountPaid >= feeTotalDue(myFee) ? pill("good","Fully paid") : pill("bad", "Balance of ₦"+(feeTotalDue(myFee)-myFee.amountPaid).toLocaleString()+" owed")}
+      `}
+    </div>`;
+  }
+
+  return `<div style="padding-top:24px;">
+    <div class="section-title"><h2>Welcome, ${esc(s.name.split(" ")[0])}</h2></div>
+    <p class="section-sub" style="margin-top:-10px;">Class: ${esc(s.studentClass || "Not yet assigned")}</p>
+    ${tabsHTML([{key:"results",label:"My results"},{key:"work",label:"Assignments & exams"},{key:"fees",label:"Fee status"}], tab, "setStudentTab")}
+    ${inner}
+  </div>`;
+}
+
+/* ---------------------------- TEACHER --------------------------------- */
+function setTeacherTab(k){ setUI({teacherTab:k}); }
+function renderTeacher(){
+  const tab = state.ui.teacherTab || "scores";
+  const s = state.session;
+  const students = state.users.filter(u => u.role==="student" && u.status==="approved");
+  const query = state.ui.teacherQuery || "";
+  const selectedId = state.ui.teacherStudentId || "";
+  const subject = state.ui.teacherSubject || state.subjects[0] || "";
+  const term = state.ui.teacherTerm || "1st Term";
+
+  let inner = "";
+  if (tab === "scores"){
+    const filtered = students.filter(st => st.name.toLowerCase().includes(query.toLowerCase()));
+    const selectedName = (students.find(st=>st.id===selectedId)||{}).name || "None selected";
+    const editingId = state.ui.teacherEditingId || "";
+    const mine = state.academics.results.filter(r => r.studentId===selectedId && r.enteredBy===s.id);
+    inner = `<div class="two-col">
+      <div class="card pad">
+        <div class="section-title"><h2>Find a student</h2></div>
+        <p class="section-sub">Search, then submit their score.</p>
+        <input class="input" placeholder="Search by name…" value="${esc(query)}" oninput="setUI({teacherQuery:this.value})" />
+        <div class="search-list">
+          ${filtered.length===0 ? `<div class="empty">No matching students.</div>` :
+            filtered.map(st => `<button class="search-item ${selectedId===st.id?'active':''}" onclick="setUI({teacherStudentId:'${st.id}', teacherEditingId:''})"><span>${esc(st.name)} <span style="color:#9a927e; font-weight:400;">· ${esc(st.studentClass||"—")}</span></span><span>›</span></button>`).join("")
+          }
+        </div>
+      </div>
+      <div class="card pad">
+        <div class="section-title"><h2>${editingId ? "Edit score" : "Submit score"}</h2></div>
+        <form onsubmit="return submitScore(event)">
+          <label class="field"><span class="field-label">Selected student</span><input class="input" disabled value="${esc(selectedName)}" /></label>
+          <label class="field"><span class="field-label">Subject</span>
+            <select class="input" onchange="setUI({teacherSubject:this.value})">
+              ${state.subjects.map(sub => `<option ${sub===subject?'selected':''}>${esc(sub)}</option>`).join("")}
+            </select>
+          </label>
+          <label class="field"><span class="field-label">Term</span>
+            <select class="input" onchange="setUI({teacherTerm:this.value})">
+              ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
+            </select>
+          </label>
+          <label class="field"><span class="field-label">Score (out of 100)</span>
+            <input class="input" type="number" min="0" max="100" id="teacherScore" value="${esc(state.ui.teacherScore||"")}" oninput="state.ui.teacherScore=this.value" />
+          </label>
+          <label class="field"><span class="field-label">Remark</span>
+            <textarea class="input" id="teacherRemark" rows="2" placeholder="e.g. Good improvement this term" oninput="state.ui.teacherRemark=this.value">${esc(state.ui.teacherRemark||"")}</textarea>
+          </label>
+          <div style="display:flex; gap:8px;">
+            <button class="btn primary block" type="submit">${editingId ? "Save changes" : "Submit for approval"}</button>
+            ${editingId ? `<button class="btn ghost" type="button" onclick="cancelEditScore()">Cancel</button>` : ""}
+          </div>
+        </form>
+      </div>
+      <div class="card pad" style="grid-column:1/-1;">
+        <div class="section-title"><h2>Scores you've entered for ${esc(selectedName)}</h2></div>
+        ${!selectedId ? `<div class="empty">Select a student to see and manage their scores.</div>` :
+          mine.length===0 ? `<div class="empty">You haven't entered any scores for this student yet.</div>` :
+          mine.map(r => `
+            <div class="row-item">
+              <div><p class="row-title">${esc(r.subject)} · ${esc(r.term)}</p><p class="row-sub">${r.score}/100${r.remark?" · "+esc(r.remark):""}</p></div>
+              <div class="row-actions">
+                ${r.approved ? pill("good","Approved") : pill("warn","Pending")}
+                <button class="btn ghost sm" onclick="editScore('${r.id}')">Edit</button>
+                <button class="btn danger sm" onclick="deleteScore('${r.id}')">Delete</button>
+              </div>
+            </div>`).join("")
+        }
+      </div>
+    </div>`;
+  } else if (tab === "work"){
+    inner = `<div class="card pad" style="max-width:420px;">
+      <div class="section-title"><h2>Post an assignment or exam</h2></div>
+      <form onsubmit="return submitAssignment(event)">
+        <label class="field"><span class="field-label">Title</span><input class="input" id="assignTitle" placeholder="e.g. Essay on climate change" value="${esc(state.ui.assignTitle||"")}" oninput="state.ui.assignTitle=this.value" /></label>
+        <label class="field"><span class="field-label">Subject</span>
+          <select class="input" id="assignSubject">${state.subjects.map(sub=>`<option>${esc(sub)}</option>`).join("")}</select>
+        </label>
+        <div class="field">
+          <span class="field-label">Type</span>
+          <div class="role-grid" style="grid-template-columns:1fr 1fr;">
+            ${["assignment","exam"].map(t => `<button type="button" class="role-opt ${((state.ui.assignType||"assignment")===t)?'active':''}" onclick="setUI({assignType:'${t}'})" style="text-transform:capitalize;">${t}</button>`).join("")}
+          </div>
+        </div>
+        <label class="field"><span class="field-label">Due date</span><input class="input" type="date" id="assignDue" value="${esc(state.ui.assignDue||"")}" oninput="state.ui.assignDue=this.value" /></label>
+        <button class="btn primary block" type="submit">Post to students</button>
+      </form>
+    </div>`;
+  } else {
+    inner = `<div class="card pad">
+      <div class="section-title"><h2>Student fee status</h2></div>
+      <p class="section-sub">Read-only — the cashier records payments.</p>
+      ${students.map(st => {
+        const f = state.fees.find(x=>x.studentId===st.id);
+        const p = !f ? pill("neutral","No record") : (f.amountPaid>=feeTotalDue(f) ? pill("good","Paid") : pill("bad","Owes ₦"+(feeTotalDue(f)-f.amountPaid).toLocaleString()));
+        return `<div class="row-item"><span style="font-size:13.5px; font-weight:600; color:var(--navy);">${esc(st.name)}</span>${p}</div>`;
+      }).join("")}
+    </div>`;
+  }
+
+  return `<div style="padding-top:24px;">
+    <div class="section-title"><h2>Teacher dashboard — ${esc(s.name)}</h2></div>
+    ${tabsHTML([{key:"scores",label:"Enter scores"},{key:"work",label:"Post work"},{key:"fees",label:"Fee check"}], tab, "setTeacherTab")}
+    ${inner}
+  </div>`;
+}
+function submitScore(e){
+  e.preventDefault();
+  const studentId = state.ui.teacherStudentId;
+  const score = document.getElementById("teacherScore").value;
+  const remark = document.getElementById("teacherRemark").value.trim();
+  const editingId = state.ui.teacherEditingId;
+  if (!studentId || score===""){ notify("Pick a student and enter a score.","bad"); return false; }
+  const subject = state.ui.teacherSubject || state.subjects[0];
+  const term = state.ui.teacherTerm || "1st Term";
+  if (editingId){
+    const next = state.academics.results.map(r => r.id===editingId ? { ...r, subject, term, score:Number(score), remark, approved:false } : r);
+    persistAcademics({ ...state.academics, results: next });
+    notify("Score updated — it will need admin approval again.");
+  } else {
+    const entry = { id:uid(), studentId, subject, term, score:Number(score), remark, approved:false, enteredBy: state.session.id };
+    persistAcademics({ ...state.academics, results: state.academics.results.concat([entry]) });
+    notify("Score submitted — it will show for the student once admin approves it.");
+  }
+  setUI({ teacherEditingId:"", teacherScore:"", teacherRemark:"" });
+  render();
+  return false;
+}
+function editScore(id){
+  const r = state.academics.results.find(x=>x.id===id);
+  if (!r) return;
+  setUI({ teacherEditingId:id, teacherSubject:r.subject, teacherTerm:r.term, teacherScore:String(r.score), teacherRemark:r.remark||"" });
+}
+function deleteScore(id){
+  const next = state.academics.results.filter(r=>r.id!==id);
+  persistAcademics({ ...state.academics, results: next });
+  notify("Score deleted.");
+  setUI({ teacherEditingId:"", teacherScore:"", teacherRemark:"" });
+}
+function cancelEditScore(){
+  setUI({ teacherEditingId:"", teacherScore:"", teacherRemark:"" });
+}
+function submitAssignment(e){
+  e.preventDefault();
+  const title = document.getElementById("assignTitle").value.trim();
+  const subject = document.getElementById("assignSubject").value;
+  const due = document.getElementById("assignDue").value;
+  const type = state.ui.assignType || "assignment";
+  if (!title || !due){ notify("Give the assignment a title and a due date.","bad"); return false; }
+  const entry = { id:uid(), title, subject, dueDate:due, type, teacherId: state.session.id };
+  persistAcademics({ ...state.academics, assignments: state.academics.assignments.concat([entry]) });
+  notify((type==="exam"?"Exam":"Assignment") + " posted for students.");
+  setUI({ assignTitle:"", assignDue:"" });
+  return false;
+}
+
+/* ---------------------------- CASHIER --------------------------------- */
+function renderCashier(){
+  const s = state.session;
+  const tab = state.ui.cashierTab || "single";
+  return `<div style="padding-top:24px;">
+    <div class="section-title"><h2>Cashier dashboard — ${esc(s.name)}</h2></div>
+    ${tabsHTML([
+      {key:"single", label:"Single update"},
+      {key:"bulk", label:"Bulk upload"},
+    ], tab, "setCashierTab")}
+    ${tab === "bulk" ? renderCashierBulk() : renderCashierSingle()}
+  </div>`;
+}
+function setCashierTab(k){ setUI({cashierTab:k}); }
+function renderCashierSingle(){
+  const students = state.users.filter(u => u.role==="student" && u.status==="approved");
+  const query = state.ui.cashierQuery || "";
+  const selectedId = state.ui.cashierStudentId || "";
+  const term = state.ui.cashierTerm || "1st Term";
+  const existing = state.fees.find(f => f.studentId===selectedId && f.term===term);
+  const filtered = students.filter(st => st.name.toLowerCase().includes(query.toLowerCase()));
+  const selectedName = (students.find(st=>st.id===selectedId)||{}).name || "None selected";
+
+  return `<div class="two-col">
+      <div class="card pad">
+        <div class="section-title"><h2>Find a student</h2></div>
+        <input class="input" placeholder="Search by name…" value="${esc(query)}" oninput="setUI({cashierQuery:this.value})" />
+        <div class="search-list">
+          ${filtered.length===0 ? `<div class="empty">No matching students.</div>` :
+            filtered.map(st => {
+              const f = state.fees.find(x=>x.studentId===st.id);
+              const tag = f ? (f.amountPaid<feeTotalDue(f) ? pill("bad","Owes") : pill("good","Paid")) : "";
+              return `<button class="search-item ${selectedId===st.id?'active':''}" onclick="selectCashierStudent('${st.id}')"><span>${esc(st.name)}</span>${tag}</button>`;
+            }).join("")
+          }
+        </div>
+      </div>
+      <div class="card pad">
+        <div class="section-title"><h2>Update fee payment</h2></div>
+        <form onsubmit="return submitFee(event)">
+          <label class="field"><span class="field-label">Selected student</span><input class="input" disabled value="${esc(selectedName)}" /></label>
+          <label class="field"><span class="field-label">Term</span>
+            <select class="input" onchange="selectCashierTerm(this.value)">
+              ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
+            </select>
+          </label>
+          <label class="field"><span class="field-label">Amount due (₦)</span><input class="input" type="number" min="0" id="feeDue" value="${existing?existing.amountDue:''}" /></label>
+          <label class="field"><span class="field-label">Amount paid (₦)</span><input class="input" type="number" min="0" id="feePaid" value="${existing?existing.amountPaid:''}" /></label>
+          <button class="btn primary block" type="submit">Save payment record</button>
+        </form>
+      </div>
+    </div>
+    ${feeAdjustmentPanel(selectedId, term, "cashier")}`;
+}
+function renderCashierBulk(){
+  const term = state.ui.bulkTerm || "1st Term";
+  const result = state.ui.bulkResult || null;
+  const withAdm = state.users.filter(u => u.role==="student" && u.admissionNo).length;
+  const noAdm = state.users.filter(u => u.role==="student" && !u.admissionNo).length;
+  return `<div class="two-col">
+    <div class="card pad">
+      <div class="section-title"><h2>Upload by admission number</h2></div>
+      <p class="section-sub">Upload a CSV file with one row per student: <b>admission number, amount due, amount paid</b>. Matching students are updated instantly — no need to open each student's page.</p>
+      <label class="field"><span class="field-label">Term this file applies to</span>
+        <select class="input" onchange="setUI({bulkTerm:this.value})">
+          ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
+        </select>
+      </label>
+      <label class="field">
+        <span class="field-label">CSV file</span>
+        <input class="input" type="file" accept=".csv,text/csv,text/plain" onchange="bulkFeeFileUpload(event)" />
+      </label>
+      <button class="btn ghost block sm" type="button" onclick="downloadFeeTemplate()">Download CSV template</button>
+      <p class="fine-note" style="text-align:left; margin-top:12px;">${withAdm} student${withAdm===1?"":"s"} currently ${withAdm===1?"has":"have"} an admission number on file${noAdm ? ` · ${noAdm} student${noAdm===1?"":"s"} still ${noAdm===1?"needs":"need"} one added in Students tab` : ""}.</p>
+    </div>
+    <div class="card pad">
+      <div class="section-title"><h2>Or paste rows directly</h2></div>
+      <p class="section-sub">One student per line: <code>admissionNo, amountDue, amountPaid</code></p>
+      <textarea class="input" id="bulkPasteText" rows="8" placeholder="FISSI/2024/001, 45000, 45000&#10;FISSI/2024/002, 45000, 20000" style="resize:vertical; font-family:monospace; font-size:12.5px;"></textarea>
+      <button class="btn primary block" style="margin-top:12px;" onclick="applyBulkFeePaste()">Apply pasted rows</button>
+      ${result ? `
+        <div style="margin-top:16px;">
+          <p class="row-title" style="margin-bottom:8px;">Last upload result — ${esc(result.term)}</p>
+          ${pill("good", result.updated + " updated")} ${result.notFound.length ? pill("bad", result.notFound.length + " not found") : ""}
+          ${result.notFound.length ? `<p class="fine-note" style="text-align:left; margin-top:8px;">Not found: ${result.notFound.map(esc).join(", ")}</p>` : ""}
+        </div>` : ""}
+    </div>
+  </div>`;
+}
+function parseFeeCSV(text){
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const rows = [];
+  for (const line of lines){
+    const parts = line.split(",").map(p => p.trim());
+    if (parts.length < 3) continue;
+    if (/admission/i.test(parts[0])) continue; // skip header row
+    const [admissionNo, amountDue, amountPaid] = parts;
+    if (!admissionNo) continue;
+    rows.push({ admissionNo, amountDue: Number(amountDue)||0, amountPaid: Number(amountPaid)||0 });
+  }
+  return rows;
+}
+function applyBulkFeeRows(rows, term){
+  const notFound = [];
+  let nextFees = state.fees.slice();
+  let updated = 0;
+  rows.forEach(row => {
+    const student = state.users.find(u => u.role==="student" && (u.admissionNo||"").toLowerCase()===row.admissionNo.toLowerCase());
+    if (!student){ notFound.push(row.admissionNo); return; }
+    const existing = nextFees.find(f => f.studentId===student.id && f.term===term);
+    const record = { id: existing?existing.id:uid(), studentId: student.id, term, amountDue: row.amountDue, amountPaid: row.amountPaid, adjustments: existing?(existing.adjustments||[]):[] };
+    nextFees = existing ? nextFees.map(f => f.id===existing.id ? record : f) : nextFees.concat([record]);
+    updated++;
+  });
+  persistFees(nextFees);
+  setUI({ bulkResult: { term, updated, notFound } });
+  notify(updated ? `Updated ${updated} fee record${updated===1?"":"s"}.` : "No matching admission numbers found.", updated ? "good" : "bad");
+}
+function bulkFeeFileUpload(event){
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const term = state.ui.bulkTerm || "1st Term";
+  const reader = new FileReader();
+  reader.onload = () => {
+    const rows = parseFeeCSV(String(reader.result));
+    if (!rows.length){ notify("Couldn't find any valid rows in that file.", "bad"); return; }
+    applyBulkFeeRows(rows, term);
+  };
+  reader.onerror = () => notify("Couldn't read that file.", "bad");
+  reader.readAsText(file);
+}
+function applyBulkFeePaste(){
+  const text = document.getElementById("bulkPasteText").value;
+  const term = state.ui.bulkTerm || "1st Term";
+  const rows = parseFeeCSV(text);
+  if (!rows.length){ notify("Add at least one row first.", "bad"); return; }
+  applyBulkFeeRows(rows, term);
+}
+function downloadFeeTemplate(){
+  const csv = "admissionNo,amountDue,amountPaid\nFISSI/2024/001,45000,45000\nFISSI/2024/002,45000,20000\n";
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "fissi-fee-upload-template.csv";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function selectCashierStudent(id){ setUI({cashierStudentId:id}); }
+function selectCashierTerm(t){ setUI({cashierTerm:t}); }
+function submitFee(e){
+  e.preventDefault();
+  const studentId = state.ui.cashierStudentId;
+  const term = state.ui.cashierTerm || "1st Term";
+  const amountDue = document.getElementById("feeDue").value;
+  const amountPaid = document.getElementById("feePaid").value;
+  if (!studentId || amountDue===""){ notify("Select a student and enter the amount due.","bad"); return false; }
+  const existing = state.fees.find(f => f.studentId===studentId && f.term===term);
+  const record = { id: existing?existing.id:uid(), studentId, term, amountDue:Number(amountDue), amountPaid:Number(amountPaid||0), adjustments: existing?(existing.adjustments||[]):[] };
+  const next = existing ? state.fees.map(f=>f.id===existing.id?record:f) : state.fees.concat([record]);
+  persistFees(next);
+  notify("Fee record updated.");
+  render();
+  return false;
+}
+
+function submitAdminFee(e){
+  e.preventDefault();
+  const studentId = state.ui.adminFeeStudentId;
+  const term = state.ui.adminFeeTerm || "1st Term";
+  const amountDue = document.getElementById("adminFeeDue").value;
+  const amountPaid = document.getElementById("adminFeePaid").value;
+  if (!studentId || amountDue===""){ notify("Select a student and enter the amount due.","bad"); return false; }
+  const existing = state.fees.find(f => f.studentId===studentId && f.term===term);
+  const record = { id: existing?existing.id:uid(), studentId, term, amountDue:Number(amountDue), amountPaid:Number(amountPaid||0), adjustments: existing?(existing.adjustments||[]):[] };
+  const next = existing ? state.fees.map(f=>f.id===existing.id?record:f) : state.fees.concat([record]);
+  persistFees(next);
+  notify("Fee record updated.");
+  render();
+  return false;
+}
+
+/* ---------------------------- ADMIN ------------------------------------ */
+function setAdminTab(k){ setUI({adminTab:k}); }
+function renderAdmin(){
+  const tab = state.ui.adminTab || "approvals";
+  const s = state.session;
+  const pendingUsers = state.users.filter(u => u.status==="pending");
+  const pendingResults = state.academics.results.filter(r => !r.approved);
+  const studentName = id => (state.users.find(u=>u.id===id)||{}).name || "Unknown";
+
+  let inner = "";
+  if (tab === "approvals"){
+    inner = `<div class="card pad">
+      ${pendingUsers.length===0 ? `<div class="empty">No accounts waiting for review.</div>` :
+        pendingUsers.map(u => `
+          <div class="row-item">
+            <div><p class="row-title">${esc(u.name)}</p><p class="row-sub">@${esc(u.username)} · ${esc(u.role)}</p></div>
+            <div class="row-actions">
+              <button class="btn navy sm" onclick="decideUser('${u.id}',true)">Approve</button>
+              <button class="btn danger sm" onclick="decideUser('${u.id}',false)">Reject</button>
+            </div>
+          </div>`).join("")
+      }
+    </div>`;
+  } else if (tab === "results"){
+    inner = `<div class="card pad">
+      ${pendingResults.length===0 ? `<div class="empty">No results are waiting for approval.</div>` :
+        pendingResults.map(r => `
+          <div class="row-item">
+            <div><p class="row-title">${esc(studentName(r.studentId))}</p><p class="row-sub">${esc(r.subject)} · ${esc(r.term)} · Score: ${r.score}/100${r.remark?" · "+esc(r.remark):""}</p></div>
+            <div class="row-actions">
+              <button class="btn navy sm" onclick="decideResult('${r.id}',true)">Approve</button>
+              <button class="btn danger sm" onclick="decideResult('${r.id}',false)">Reject</button>
+            </div>
+          </div>`).join("")
+      }
+    </div>`;
+  } else if (tab === "fees"){
+    const students = state.users.filter(u=>u.role==="student" && u.status==="approved");
+    const query = state.ui.adminFeeQuery || "";
+    const selectedId = state.ui.adminFeeStudentId || "";
+    const term = state.ui.adminFeeTerm || "1st Term";
+    const existing = state.fees.find(f => f.studentId===selectedId && f.term===term);
+    const filtered = students.filter(st => st.name.toLowerCase().includes(query.toLowerCase()));
+    const selectedName = (students.find(st=>st.id===selectedId)||{}).name || "None selected";
+    inner = `<div class="two-col">
+      <div class="card pad">
+        <div class="section-title"><h2>Students</h2></div>
+        <p class="section-sub">Full fee control — same as the cashier.</p>
+        <input class="input" placeholder="Search by name…" value="${esc(query)}" oninput="setUI({adminFeeQuery:this.value})" />
+        <div class="search-list">
+          ${filtered.length===0 ? `<div class="empty">No matching students.</div>` :
+            filtered.map(st => {
+              const f = state.fees.find(x=>x.studentId===st.id);
+              const tag = f ? (f.amountPaid<feeTotalDue(f) ? pill("bad","Owes") : pill("good","Paid")) : pill("neutral","No record");
+              return `<button class="search-item ${selectedId===st.id?'active':''}" onclick="setUI({adminFeeStudentId:'${st.id}'})"><span>${esc(st.name)}</span>${tag}</button>`;
+            }).join("")
+          }
+        </div>
+      </div>
+      <div class="card pad">
+        <div class="section-title"><h2>Update fee payment</h2></div>
+        <form onsubmit="return submitAdminFee(event)">
+          <label class="field"><span class="field-label">Selected student</span><input class="input" disabled value="${esc(selectedName)}" /></label>
+          <label class="field"><span class="field-label">Term</span>
+            <select class="input" onchange="setUI({adminFeeTerm:this.value})">
+              ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
+            </select>
+          </label>
+          <label class="field"><span class="field-label">Amount due (₦)</span><input class="input" type="number" min="0" id="adminFeeDue" value="${existing?existing.amountDue:''}" /></label>
+          <label class="field"><span class="field-label">Amount paid (₦)</span><input class="input" type="number" min="0" id="adminFeePaid" value="${existing?existing.amountPaid:''}" /></label>
+          <button class="btn primary block" type="submit">Save payment record</button>
+        </form>
+      </div>
+    </div>
+    ${feeAdjustmentPanel(selectedId, term, "admin")}`;
+  } else if (tab === "subjects"){
+    inner = `<div class="card pad" style="max-width:420px;">
+      <div class="section-title"><h2>Manage subjects</h2></div>
+      <form onsubmit="return addSubject(event)" style="display:flex; gap:8px; margin-bottom:16px;">
+        <input class="input" id="newSubject" placeholder="e.g. Geography" />
+        <button class="btn navy" type="submit">+</button>
+      </form>
+      ${state.subjects.map(sub => `<div class="subject-row"><span style="color:var(--navy);">${esc(sub)}</span><button onclick="removeSubject('${esc(sub).replace(/'/g,"\\'")}')">✕</button></div>`).join("")}
+    </div>`;
+  } else if (tab === "classes"){
+    inner = `<div class="card pad" style="max-width:420px;">
+      <div class="section-title"><h2>Manage classes</h2></div>
+      <p class="section-sub">e.g. JSS 1, JSS 2, JSS 3, SS 1, SS 2, SS 3.</p>
+      <form onsubmit="return addClass(event)" style="display:flex; gap:8px; margin-bottom:16px;">
+        <input class="input" id="newClass" placeholder="e.g. SS 3" />
+        <button class="btn navy" type="submit">+</button>
+      </form>
+      ${state.classes.map(c => `<div class="subject-row"><span style="color:var(--navy);">${esc(c)}</span><button onclick="removeClass('${esc(c).replace(/'/g,"\\'")}')">✕</button></div>`).join("")}
+    </div>`;
+  } else if (tab === "students"){
+    const students = state.users.filter(u => u.role==="student");
+    const classFilter = state.ui.studentClassFilter || "all";
+    const filtered = classFilter==="all" ? students : students.filter(st => (st.studentClass||"Unassigned")===classFilter);
+    inner = `<div class="card pad">
+      <div class="section-title"><h2>Students by class</h2></div>
+      <p class="section-sub">${students.length} student${students.length===1?"":"s"} total. Change a student's class any time.</p>
+      <div style="margin-bottom:14px;">
+        <select class="input" onchange="setUI({studentClassFilter:this.value})">
+          <option value="all" ${classFilter==='all'?'selected':''}>All classes</option>
+          ${state.classes.map(c => `<option ${classFilter===c?'selected':''}>${esc(c)}</option>`).join("")}
+        </select>
+      </div>
+      ${filtered.length===0 ? `<div class="empty">No students in this class yet.</div>` :
+        filtered.map(st => `
+          <div class="row-item">
+            <div>
+              <p class="row-title">${esc(st.name)}</p>
+              <p class="row-sub">@${esc(st.username)} · ${pill(st.status==="approved"?"good":"warn", st.status)}</p>
+            </div>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
+              <input class="input" style="width:130px; padding:7px 10px; font-size:12px;" placeholder="Admission no." value="${esc(st.admissionNo||"")}" onchange="setStudentAdmissionNo('${st.id}', this.value)" />
+              <select class="input" style="width:auto; padding:7px 10px; font-size:12px;" onchange="setStudentClass('${st.id}', this.value)">
+                ${state.classes.map(c => `<option ${(st.studentClass||state.classes[0])===c?'selected':''}>${esc(c)}</option>`).join("")}
+              </select>
+            </div>
+          </div>`).join("")
+      }
+    </div>`;
+  } else if (tab === "users"){
+    inner = `<div class="card pad">
+      ${state.users.map(u => `
+        <div class="row-item">
+          <div><p class="row-title">${esc(u.name)}</p><p class="row-sub">@${esc(u.username)} · ${esc(u.role)}${u.role==="student"?` · ${esc(u.studentClass||"Unassigned")}`:""}</p></div>
+          ${pill(u.status==="approved"?"good":"warn", u.status)}
+        </div>`).join("")}
+    </div>`;
+  } else {
+    const stamp = new Date().toLocaleString();
+    inner = `<div class="card pad" style="max-width:460px;">
+      <div class="section-title"><h2>Backup &amp; restore</h2></div>
+      <p class="section-sub">A manual safety net while server syncing is unreliable. Download a backup file now and then, and restore it if records ever go missing.</p>
+      <button class="btn navy block" onclick="downloadBackup()" style="margin-bottom:12px;">Download backup (.json)</button>
+      <label class="field">
+        <span class="field-label">Restore from a backup file</span>
+        <input class="input" type="file" accept="application/json,.json" onchange="restoreBackup(event)" />
+      </label>
+      <p class="fine-note" style="text-align:left;">Restoring replaces every record currently in the portal — students, teachers, results, assignments and fees — with whatever is in the file. Last checked: ${esc(stamp)}.</p>
+    </div>`;
+  }
+
+  return `<div style="padding-top:24px;">
+    <div class="section-title"><h2>Admin dashboard — ${esc(s.name)}</h2></div>
+    ${tabsHTML([
+      {key:"approvals", label:"Approvals" + (pendingUsers.length?` (${pendingUsers.length})`:"")},
+      {key:"results", label:"Results" + (pendingResults.length?` (${pendingResults.length})`:"")},
+      {key:"students", label:"Students"},
+      {key:"fees", label:"Fees & debt"},
+      {key:"subjects", label:"Subjects"},
+      {key:"classes", label:"Classes"},
+      {key:"users", label:"All users"},
+      {key:"backup", label:"Backup"},
+    ], tab, "setAdminTab")}
+    ${inner}
+  </div>`;
+}
+function addClass(e){
+  e.preventDefault();
+  const v = document.getElementById("newClass").value.trim();
+  if (!v || state.classes.includes(v)) return false;
+  persistClasses(state.classes.concat([v]));
+  notify("Class added.");
+  render();
+  return false;
+}
+function removeClass(cls){
+  persistClasses(state.classes.filter(x=>x!==cls));
+  notify("Class removed.");
+  render();
+}
+function setStudentClass(studentId, cls){
+  persistUsers(state.users.map(u => u.id===studentId ? { ...u, studentClass: cls } : u));
+  notify("Class updated.");
+  render();
+}
+function setStudentAdmissionNo(studentId, val){
+  const admissionNo = val.trim();
+  if (admissionNo && state.users.some(u => u.id!==studentId && u.role==="student" && (u.admissionNo||"").toLowerCase()===admissionNo.toLowerCase())){
+    notify("Another student already has that admission number.", "bad");
+    render();
+    return;
+  }
+  persistUsers(state.users.map(u => u.id===studentId ? { ...u, admissionNo: admissionNo || undefined } : u));
+  notify("Admission number updated.");
+  render();
+}
+function downloadBackup(){
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    school: "Faith International Secondary School, Itobe",
+    users: state.users,
+    subjects: state.subjects,
+    classes: state.classes,
+    academics: state.academics,
+    fees: state.fees,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const datePart = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `fissi-portal-backup-${datePart}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  notify("Backup downloaded.");
+}
+function restoreBackup(event){
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || !Array.isArray(data.users)) throw new Error("This doesn't look like a FISSI backup file.");
+      persistUsers(data.users || []);
+      persistSubjects(data.subjects || DEFAULT_SUBJECTS.slice());
+      persistClasses(data.classes || DEFAULT_CLASSES.slice());
+      persistAcademics(data.academics || { results: [], assignments: [] });
+      persistFees(data.fees || []);
+      render();
+      notify("Backup restored. All records have been replaced.");
+    } catch (e) {
+      notify("Couldn't read that file — " + e.message, "bad");
+    }
+  };
+  reader.onerror = () => notify("Couldn't read that file.", "bad");
+  reader.readAsText(file);
+}
+function decideUser(id, approve){
+  const next = approve ? state.users.map(u=>u.id===id?{...u,status:"approved"}:u) : state.users.filter(u=>u.id!==id);
+  persistUsers(next);
+  notify(approve ? "Account approved." : "Account rejected and removed.");
+  render();
+}
+function decideResult(id, approve){
+  const next = approve ? state.academics.results.map(r=>r.id===id?{...r,approved:true}:r) : state.academics.results.filter(r=>r.id!==id);
+  persistAcademics({ ...state.academics, results: next });
+  notify(approve ? "Result approved and released to student." : "Result rejected and removed.");
+  render();
+}
+function addSubject(e){
+  e.preventDefault();
+  const v = document.getElementById("newSubject").value.trim();
+  if (!v || state.subjects.includes(v)) return false;
+  persistSubjects(state.subjects.concat([v]));
+  notify("Subject added.");
+  render();
+  return false;
+}
+function removeSubject(sub){
+  persistSubjects(state.subjects.filter(x=>x!==sub));
+  notify("Subject removed.");
+  render();
+}
+
+init();
+</script>
+</body>
+</html>
