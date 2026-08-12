@@ -328,7 +328,7 @@ async function loadPendingSignups(){
 
 async function decideSignup(id, action){
   try {
-    await api(`/api/admin/signups/${id}`, { method:"PATCH", body: JSON.stringify({ signupStatus: action }) });
+    await api(`/api/admin/signups/${id}`, { method:"PATCH", body: JSON.stringify({ decision: action }) });
     toast(action === "APPROVED" ? "Account approved." : "Account rejected.");
     loadPendingSignups();
   } catch(err){
