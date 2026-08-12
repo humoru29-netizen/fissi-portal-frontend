@@ -2,1706 +2,369 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>FISSI Connect — Faith International Secondary School, Itobe</title>
-<!-- Firebase: used only when this page is hosted on the open web (not inside a Claude
-     artifact). Fill in FIREBASE_CONFIG further down with your own project's values. -->
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>FISSI-PORTAL — Faith International Secondary School, Itobe</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
-
   :root{
     --navy:#0B1F3B; --navy-deep:#081729; --wine:#6E1F2E; --wine-deep:#551723;
     --gold:#C9A24B; --gold-soft:#E4CE95; --parch:#F6F1E4; --ink:#1C1712;
-    --line:#e6dcc0; --tile:#f4eeda;
+    --line:#d8cfb8;
   }
   *{box-sizing:border-box;}
-  body{margin:0; background:var(--parch); color:var(--ink); font-family:'Source Sans 3', system-ui, sans-serif; -webkit-tap-highlight-color: transparent;}
-  h1,h2,h3{font-family:'Playfair Display', Georgia, serif; margin:0;}
-  button{font-family:inherit; cursor:pointer;}
-  input, select{font-family:inherit;}
+  body{margin:0; background:var(--parch); color:var(--ink); font-family:'Source Sans 3', system-ui, sans-serif; -webkit-tap-highlight-color:transparent;}
+  h1,h2,h3{font-family:'Playfair Display', serif; margin:0;}
+  a{color:inherit;}
 
-  header.topbar{background:var(--navy); border-bottom:1px solid var(--navy-deep);}
-  .topbar-inner{max-width:900px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;}
-  .brand{display:flex; align-items:center; gap:10px; background:none; border:none; padding:0; cursor:pointer;}
-  .brand-name{color:var(--gold-soft); font-weight:700; font-size:15px; line-height:1.2; text-align:left;}
-  .brand-sub{color:#b9c2d4; font-size:10.5px; letter-spacing:.03em;}
-  .session-chip{color:#cdd5e3; font-size:12px; margin-right:8px;}
-  .logout-btn{background:var(--wine); color:var(--parch); border:none; border-radius:6px; padding:7px 12px; font-size:12px; font-weight:700; display:inline-flex; align-items:center; gap:5px;}
+  /* ---------- topbar ---------- */
+  header.topbar{background:var(--navy); border-bottom:3px solid var(--gold); position:sticky; top:0; z-index:20;}
+  .topbar-inner{max-width:960px; margin:0 auto; padding:12px 16px; display:flex; align-items:center; justify-content:space-between;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .crest{width:34px; height:34px; border-radius:50%; background:var(--gold); color:var(--navy-deep); display:flex; align-items:center; justify-content:center; font-family:'Playfair Display',serif; font-weight:800; font-size:15px; flex-shrink:0;}
+  .brand-name{color:var(--gold-soft); font-weight:700; font-size:14px; line-height:1.25;}
+  .brand-name small{display:block; color:#c9c3b0; font-weight:400; font-size:11px;}
+  .logout-btn{background:var(--wine); color:var(--parch); border:none; border-radius:7px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;}
+  .logout-btn:active{background:var(--wine-deep);}
 
-  main{max-width:900px; margin:0 auto; padding:0 16px 48px;}
-  footer{text-align:center; font-size:12px; color:#7a7263; padding:24px 16px;}
-  footer b{color:var(--wine);}
+  /* ---------- layout ---------- */
+  main{max-width:960px; margin:0 auto; padding:20px 16px 60px;}
+  .toast{position:fixed; top:14px; left:16px; right:16px; z-index:60; background:var(--navy); color:var(--parch); border-radius:9px; padding:12px 16px; font-size:13.5px; font-weight:600; box-shadow:0 8px 24px rgba(0,0,0,.3); max-width:420px; margin:0 auto; text-align:center; opacity:0; transform:translateY(-8px); transition:opacity .25s, transform .25s; pointer-events:none;}
+  .toast.show{opacity:1; transform:translateY(0);}
+  .toast.error{background:var(--wine);}
 
-  .toast{position:fixed; top:16px; right:16px; left:16px; z-index:50; background:var(--navy); color:var(--parch); border-radius:8px; padding:12px 16px; font-size:14px; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,.25); max-width:420px; margin-left:auto;}
-  .toast.bad{background:#7a2c2c;}
-
-  .card{background:#fffdf8; border:1px solid var(--line); border-radius:10px; box-shadow:0 1px 2px rgba(0,0,0,.04);}
-  .card.pad{padding:20px;}
-
-  .btn{display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:6px; padding:11px 16px; font-size:14px; font-weight:700; border:none; transition:filter .15s;}
-  .btn:hover{filter:brightness(1.08);}
-  .btn:disabled{opacity:.4; cursor:not-allowed;}
+  /* ---------- login screen ---------- */
+  .login-wrap{min-height:calc(100vh - 60px); display:flex; align-items:center; justify-content:center; padding:20px 16px;}
+  .login-card{width:100%; max-width:380px; background:#fffdf8; border:1px solid var(--line); border-radius:14px; padding:28px 24px; box-shadow:0 12px 32px rgba(11,31,59,.12);}
+  .login-eyebrow{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--wine); margin-bottom:6px;}
+  .login-card h1{font-size:22px; color:var(--navy); margin-bottom:4px; line-height:1.2;}
+  .login-sub{font-size:13px; color:#5c5346; margin-bottom:22px;}
+  .field{margin-bottom:14px;}
+  .field-label{display:block; font-size:11px; font-weight:700; letter-spacing:.02em; color:var(--navy); margin-bottom:5px; text-transform:uppercase;}
+  .input{width:100%; border-radius:7px; border:1px solid var(--line); background:#fffdf8; padding:11px 12px; font-size:15px; color:var(--ink);}
+  .input:focus{outline:2px solid var(--gold); outline-offset:1px; border-color:var(--gold);}
+  .btn{width:100%; border:none; border-radius:8px; padding:12px 16px; font-size:14.5px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:6px;}
   .btn.primary{background:var(--wine); color:var(--parch);}
-  .btn.navy{background:var(--navy); color:var(--parch);}
-  .btn.gold{background:var(--gold); color:var(--navy-deep);}
-  .btn.ghost{background:transparent; color:var(--navy); border:1.5px solid var(--navy);}
-  .btn.danger{background:#7a2c2c; color:#fbe9e9;}
-  .btn.block{width:100%;}
-  .btn.sm{padding:7px 12px; font-size:12px;}
+  .btn.primary:active{background:var(--wine-deep);}
+  .btn.primary:disabled{opacity:.6;}
+  .btn.ghost{background:transparent; color:var(--navy); border:1.5px solid var(--navy); margin-top:10px;}
+  .form-msg{font-size:13px; margin-top:12px; text-align:center; color:var(--wine); font-weight:600;}
+  .switch-note{text-align:center; font-size:13px; margin-top:16px; color:#5c5346;}
+  .switch-note button{background:none; border:none; color:var(--wine); font-weight:700; text-decoration:underline; cursor:pointer; font-size:inherit; padding:0;}
 
-  .field{display:block; margin-bottom:14px;}
-  .field-label{display:block; font-size:11px; font-weight:700; letter-spacing:.02em; color:var(--navy); margin-bottom:5px;}
-  .input{width:100%; border-radius:6px; border:1px solid #d8cfb8; background:#fffdf8; padding:10px 12px; font-size:14px; color:var(--ink);}
-  .input:focus{outline:2px solid var(--gold); outline-offset:1px;}
+  /* ---------- dashboard shell ---------- */
+  .greet{margin-bottom:18px;}
+  .greet .eyebrow{font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--wine);}
+  .greet h1{font-size:24px; color:var(--navy); margin-top:4px;}
+  .role-pill{display:inline-block; background:var(--navy); color:var(--gold-soft); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 10px; border-radius:20px; margin-top:8px;}
 
-  .role-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px;}
-  .role-opt{border-radius:6px; padding:9px 10px; font-size:12px; font-weight:700; border:1px solid #d8cfb8; background:transparent; color:var(--navy);}
-  .role-opt.active{background:var(--navy); color:var(--parch); border-color:var(--navy);}
+  .tabs{display:flex; gap:6px; overflow-x:auto; margin:18px 0 14px; padding-bottom:2px;}
+  .tab{flex-shrink:0; background:transparent; border:1.5px solid var(--line); color:var(--navy); font-weight:700; font-size:12.5px; padding:8px 14px; border-radius:20px; cursor:pointer; white-space:nowrap;}
+  .tab.active{background:var(--navy); color:var(--gold-soft); border-color:var(--navy);}
 
-  .err-box{font-size:12px; margin-bottom:12px; border-radius:6px; padding:9px 12px; background:#f5dcdc; color:#8a2020;}
-  .center-note{font-size:12px; text-align:center; margin-top:16px; color:#8a8375;}
-  .center-note a, .link-btn{font-weight:700; color:var(--wine); text-decoration:underline; background:none; border:none; font-size:inherit; cursor:pointer; padding:0;}
-  .fine-note{font-size:11px; text-align:center; margin-top:12px; color:#b0a996;}
-
-  .hero{padding-top:48px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:18px;}
-  .hero h1{font-size:24px; font-weight:800; color:var(--navy); max-width:560px;}
-  .hero p{max-width:520px; font-size:14px; color:#6b6255; margin:0;}
-  .hero-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:center;}
-  .tiles{display:grid; grid-template-columns:1fr; gap:14px; margin-top:44px;}
-  @media(min-width:680px){ .tiles{grid-template-columns:1fr 1fr 1fr;} .role-grid{grid-template-columns:repeat(4,1fr);} }
-  .tile h3{font-size:15px; color:var(--navy); margin:8px 0 4px;}
-  .tile p{font-size:12px; color:#8a8375; line-height:1.5; margin:0;}
-
-  .auth-wrap{max-width:380px; margin:36px auto 0;}
-
-  .section-title{display:flex; align-items:center; gap:8px; margin-bottom:6px;}
-  .section-title h2{font-size:17px; font-weight:700; color:var(--navy);}
-  .section-sub{font-size:12px; color:#8a8375; margin:2px 0 16px;}
-
-  .tabs{display:flex; gap:5px; overflow-x:auto; padding-bottom:6px; margin-bottom:20px;}
-  .tab{white-space:nowrap; border:none; border-radius:6px; padding:9px 14px; font-size:12px; font-weight:700; background:var(--tile); color:var(--navy);}
-  .tab.active{background:var(--wine); color:var(--parch);}
-
-  .row-item{display:flex; align-items:center; justify-content:between; justify-content:space-between; border-bottom:1px solid #eee3c9; padding:11px 0; gap:10px;}
-  .row-item:last-child{border-bottom:none;}
-  .row-title{font-weight:700; font-size:13.5px; color:var(--navy); margin:0 0 2px;}
-  .row-sub{font-size:11.5px; color:#8a8375; margin:0;}
+  .card{background:#fffdf8; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px;}
+  .card h3{font-size:15px; color:var(--navy); margin-bottom:2px;}
+  .card .meta{font-size:12px; color:#7a715f; margin-bottom:10px;}
+  .row{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid #ece5d3;}
+  .row:last-child{border-bottom:none;}
+  .row-main{min-width:0;}
+  .row-main .name{font-weight:700; font-size:14px; color:var(--ink);}
+  .row-main .sub{font-size:12px; color:#7a715f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .row-actions{display:flex; gap:6px; flex-shrink:0;}
+  .chip-btn{border:none; border-radius:6px; padding:7px 11px; font-size:11.5px; font-weight:700; cursor:pointer;}
+  .chip-btn.approve{background:#2f6b3f; color:#fff;}
+  .chip-btn.reject{background:var(--wine); color:#fff;}
+  .empty{text-align:center; padding:34px 16px; color:#7a715f; font-size:13.5px;}
+  .empty b{display:block; color:var(--navy); font-size:15px; margin-bottom:4px; font-family:'Playfair Display',serif;}
+  .loading{text-align:center; padding:30px; color:#7a715f; font-size:13px;}
 
-  .pill{display:inline-flex; align-items:center; gap:4px; border-radius:999px; padding:4px 10px; font-size:11px; font-weight:700; white-space:nowrap;}
-  .pill.neutral{background:#eee6cf; color:var(--navy);}
-  .pill.good{background:#dcefdd; color:#1e5c2c;}
-  .pill.warn{background:#f6e6c8; color:#8a5a10;}
-  .pill.bad{background:#f5dcdc; color:#8a2020;}
-
-  .empty{text-align:center; padding:36px 14px; font-size:13px; color:#8a8375; border:1.5px dashed #d8cfb8; border-radius:8px;}
-
-  .two-col{display:grid; grid-template-columns:1fr; gap:16px;}
-  @media(min-width:680px){ .two-col{grid-template-columns:1fr 1fr;} }
-  .search-list{margin-top:12px; max-height:230px; overflow-y:auto; display:flex; flex-direction:column; gap:4px;}
-  .search-item{width:100%; display:flex; align-items:center; justify-content:space-between; border-radius:6px; padding:9px 12px; font-size:13.5px; text-align:left; border:none; background:var(--tile); color:var(--ink);}
-  .search-item.active{background:var(--gold); color:var(--navy-deep); font-weight:700;}
-
-  .subject-row{display:flex; align-items:center; justify-content:space-between; border-radius:6px; padding:9px 12px; font-size:13.5px; background:var(--tile); margin-bottom:6px;}
-  .subject-row button{background:none; border:none; color:#a53535; font-size:16px; line-height:1;}
-
-  .crest-svg{display:block;}
-
-  #printArea{display:none;}
-  @media print{
-    body > div#app{display:none !important;}
-    #printArea{display:block !important; padding:24px; font-family:Georgia,serif; color:#1a2a4a;}
-    .rc-header{text-align:center; border-bottom:3px double #6E1F2E; padding-bottom:10px; margin-bottom:16px;}
-    .rc-header h1{margin:0; font-size:20px; color:#0B1F3B;}
-    .rc-header p{margin:2px 0; font-size:12px;}
-    .rc-header p.rc-loc{color:#6E1F2E; font-weight:bold;}
-    .rc-header p.rc-sub{color:#9C7A24; font-weight:bold; letter-spacing:.3px;}
-    .rc-meta{display:flex; justify-content:space-between; font-size:13px; margin-bottom:14px;}
-    .rc-table{width:100%; border-collapse:collapse; font-size:13px; margin-bottom:16px;}
-    .rc-table th, .rc-table td{border:1px solid #999; padding:6px 8px; text-align:left;}
-    .rc-summary{display:flex; justify-content:space-between; font-size:13px; margin-bottom:20px; font-weight:bold;}
-    .rc-sign{display:flex; justify-content:space-between; margin-top:50px; font-size:12px;}
-    .rc-sign div{width:40%; border-top:1px solid #333; padding-top:4px; text-align:center;}
-    .rc-page{page-break-after:always;}
-    .rc-page:last-child{page-break-after:auto;}
-    .rc-photo{width:72px; height:86px; object-fit:cover; border:1px solid #1a2a4a;}
-  }
-  .stu-avatar{width:38px; height:38px; border-radius:50%; object-fit:cover; flex-shrink:0; border:1px solid var(--line);}
-  .stu-avatar-placeholder{width:38px; height:38px; border-radius:50%; background:#efe7d8; color:#a89a7c; display:flex; align-items:center; justify-content:center; font-size:11px; flex-shrink:0; border:1px solid var(--line);}
-  .photo-input{font-size:11px; max-width:150px;}
-  .dash-avatar{width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid var(--wine);}
+  .stub h2{font-size:16px; color:var(--navy); margin-bottom:6px;}
+  .stub p{font-size:13.5px; color:#5c5346; line-height:1.5;}
 </style>
 </head>
 <body>
 
-<div id="app"></div>
-<div id="printArea"></div>
+<div id="toast" class="toast"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="crest">FI</div>
+      <div class="brand-name">FISSI-PORTAL<small>Faith Intl. Secondary School, Itobe</small></div>
+    </div>
+    <button id="logoutBtn" class="logout-btn" style="display:none;">Log out</button>
+  </div>
+</header>
+
+<main id="app"></main>
 
 <script>
-/* ------------------------------------------------------------------ */
-/* This is a standalone front-end app. Data is saved to this browser's */
-/* own storage (or Firebase, if configured), and is NOT shared across  */
-/* devices unless Firebase is set up. There is no real authentication  */
-/* or encryption — treat this as a clickable spec of the FISSI portal, */
-/* not production security.                                           */
-/* ------------------------------------------------------------------ */
-
-const KEYS = { users: "fissi:users", subjects: "fissi:subjects", academics: "fissi:academics", fees: "fissi:fees", classes: "fissi:classes", releases: "fissi:releases", passwordResets: "fissi:passwordResets", sessions: "fissi:sessions", currentSession: "fissi:currentSession" };
-const SCHOOL_CREST_DATA_URL = "data:image/jpeg;base64,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";
-const DEFAULT_SUBJECTS = ["English Language","Mathematics","Civic Education","Basic Science","Agricultural Science","French"];
-const DEFAULT_CLASSES = ["JSS 1","JSS 2","JSS 3","SS 1","SS 2","SS 3"];
-const DEFAULT_SESSIONS = ["2025/2026"];
-const TERMS = ["1st Term","2nd Term","3rd Term"];
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-/* ------------------------------------------------------------------ */
-/* FIREBASE SETUP                                                       */
-/* Paste your own project's config here (Firebase console > Project    */
-/* settings > General > Your apps > SDK setup and configuration).      */
-/* Leave the placeholder as-is and the app will just run locally with  */
-/* no cross-device sync — nothing breaks, it just won't share data.    */
-/* ------------------------------------------------------------------ */
-const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAFdZFTMeaTfM73h8_8aN2cOvb37ALk1Sg",
-  authDomain: "fissi-portal.firebaseapp.com",
-  projectId: "fissi-portal",
-  storageBucket: "fissi-portal.firebasestorage.app",
-  messagingSenderId: "147937468957",
-  appId: "1:147937468957:web:ecf2cb179c541c4ad75cf4",
-};
-
-let firestoreDb = null;
-try {
-  if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.apiKey.indexOf("PASTE_YOUR") !== 0 && window.firebase) {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    firestoreDb = firebase.firestore();
-  }
-} catch (e) {
-  console.error("Firebase did not initialize — running in local-only mode.", e);
-  firestoreDb = null;
-}
-
-function loadKey(key, fallback){
-  // 1) Firebase, if configured — this is what makes the hosted version shared
-  if (firestoreDb){
-    return firestoreDb.collection("fissi_data").doc(key).get()
-      .then(doc => (doc.exists && doc.data().value) ? JSON.parse(doc.data().value) : fallback)
-      .catch(e => { console.error("firestore get failed", key, e); return fallback; });
-  }
-  // 2) Nothing configured — fall back to this browser's localStorage so data
-  // survives reloads/logouts on this device, instead of resetting every time.
-  try {
-    const raw = window.localStorage.getItem("fissi_local:" + key);
-    return Promise.resolve(raw ? JSON.parse(raw) : fallback);
-  } catch (e) {
-    console.error("localStorage read failed", key, e);
-    return Promise.resolve(fallback);
-  }
-}
-
-// Saves never block the UI — they run in the background and retry a couple
-// of times on transient server errors. If they still fail, the change stays
-// live in this tab's memory and a small "sync" note appears instead of a
-// raw console error, so a backend hiccup can't make the app look broken.
-function saveKey(key, value, attempt){
-  attempt = attempt || 0;
-  const markOk = () => { if (state.syncIssue) { state.syncIssue = false; render(); } };
-  const markFailed = (e) => {
-    console.error("storage set failed", key, attempt, e);
-    if (attempt < 2) {
-      setTimeout(() => saveKey(key, value, attempt + 1), 700 * (attempt + 1));
-    } else {
-      state.syncIssue = true;
-      render();
-    }
-  };
-  try {
-    if (firestoreDb){
-      firestoreDb.collection("fissi_data").doc(key).set({ value: JSON.stringify(value) }).then(markOk).catch(markFailed);
-      return;
-    }
-    // nothing configured — persist to this browser's localStorage instead of
-    // dropping the data. Not shared across devices, but it survives reloads.
-    window.localStorage.setItem("fissi_local:" + key, JSON.stringify(value));
-    markOk();
-  } catch (e) {
-    markFailed(e);
-  }
-}
+/* ============================================================
+   FISSI-PORTAL frontend — talks to the live Node/Express API.
+   ============================================================ */
+const API_BASE = "https://fissi-portal-backend-zi8i.onrender.com";
 
 const state = {
-  loading: true,
-  users: [],
-  subjects: DEFAULT_SUBJECTS.slice(),
-  classes: DEFAULT_CLASSES.slice(),
-  academics: { results: [], assignments: [] },
-  fees: [],
-  releases: [],
-  passwordResets: [],
-  sessions: DEFAULT_SESSIONS.slice(),
-  currentSession: DEFAULT_SESSIONS[0],
-  session: null,
-  screen: "home",
-  toast: null,
-  // transient UI state per screen
-  ui: {}
+  token: localStorage.getItem("fissi_token") || null,
+  user: JSON.parse(localStorage.getItem("fissi_user") || "null"),
+  tab: "pending",
 };
 
-function setState(patch){ Object.assign(state, patch); render(); }
-function setUI(patch){ state.ui = Object.assign({}, state.ui, patch); render(); }
-function notify(msg, tone){
-  state.toast = { msg, tone: tone || "good" };
-  render();
-  clearTimeout(notify._t);
-  notify._t = setTimeout(() => { state.toast = null; render(); }, 3200);
+function toast(msg, isError){
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.className = "toast show" + (isError ? " error" : "");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(()=> el.classList.remove("show"), 3200);
 }
 
-async function init(){
-  try {
-    const [u, s, a, f, c, rel, pr, sess, curSess] = await Promise.all([
-      loadKey(KEYS.users, []),
-      loadKey(KEYS.subjects, DEFAULT_SUBJECTS),
-      loadKey(KEYS.academics, { results: [], assignments: [] }),
-      loadKey(KEYS.fees, []),
-      loadKey(KEYS.classes, DEFAULT_CLASSES),
-      loadKey(KEYS.releases, []),
-      loadKey(KEYS.passwordResets, []),
-      loadKey(KEYS.sessions, DEFAULT_SESSIONS),
-      loadKey(KEYS.currentSession, DEFAULT_SESSIONS[0]),
-    ]);
-    let users = u;
-    if (!users.length){
-      users = [{ id: uid(), name: "School Administrator", username: "admin", password: "admin123", role: "admin", status: "approved" }];
-      saveKey(KEYS.users, users);
-    }
-    const sessions = (sess && sess.length) ? sess : DEFAULT_SESSIONS.slice();
-    Object.assign(state, { loading:false, users, subjects: s, academics: a, fees: f, classes: (c && c.length ? c : DEFAULT_CLASSES.slice()), releases: rel || [], passwordResets: pr || [], sessions, currentSession: (curSess && sessions.includes(curSess)) ? curSess : sessions[0] });
-  } catch (e) {
-    console.error("init failed, falling back to a fresh local session", e);
-    Object.assign(state, {
-      loading:false,
-      users: [{ id: uid(), name: "School Administrator", username: "admin", password: "admin123", role: "admin", status: "approved" }],
-      subjects: DEFAULT_SUBJECTS.slice(),
-      classes: DEFAULT_CLASSES.slice(),
-      academics: { results: [], assignments: [] },
-      fees: [],
-    });
+async function api(path, opts={}){
+  const headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+  if (state.token) headers.Authorization = "Bearer " + state.token;
+  const res = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
+  let data = null;
+  try { data = await res.json(); } catch(e) {}
+  if (!res.ok) {
+    const msg = (data && (data.error || data.message)) || ("Request failed (" + res.status + ")");
+    throw new Error(msg);
   }
-  render();
+  return data;
 }
 
-function persistUsers(next){ state.users = next; saveKey(KEYS.users, next); }
-function persistSubjects(next){ state.subjects = next; saveKey(KEYS.subjects, next); }
-function persistAcademics(next){ state.academics = next; saveKey(KEYS.academics, next); }
-function persistFees(next){ state.fees = next; saveKey(KEYS.fees, next); }
-function feeAdjTotal(f){ return f && f.adjustments ? f.adjustments.reduce((sum,a)=>sum+a.amount,0) : 0; }
-function feeTotalDue(f){ return f ? f.amountDue + feeAdjTotal(f) : 0; }
-function addFeeAdjustment(studentId, term, label, amount){
-  label = (label||"").trim();
-  amount = Number(amount);
-  if (!label || !amount){ notify("Enter a label and a non-zero amount.","bad"); return; }
-  const existing = state.fees.find(f=>f.studentId===studentId && f.term===term);
-  const adj = { id: uid(), label, amount };
-  const record = existing
-    ? { ...existing, adjustments: (existing.adjustments||[]).concat([adj]) }
-    : { id: uid(), studentId, term, amountDue: 0, amountPaid: 0, adjustments: [adj] };
-  const next = existing ? state.fees.map(f=>f.id===existing.id?record:f) : state.fees.concat([record]);
-  persistFees(next);
-  notify((amount>0?"Charge":"Discount") + " added to fee record.");
-  render();
+function setSession(token, user){
+  state.token = token; state.user = user;
+  localStorage.setItem("fissi_token", token);
+  localStorage.setItem("fissi_user", JSON.stringify(user));
 }
-function removeFeeAdjustment(studentId, term, adjId){
-  const existing = state.fees.find(f=>f.studentId===studentId && f.term===term);
-  if (!existing) return;
-  const record = { ...existing, adjustments: (existing.adjustments||[]).filter(a=>a.id!==adjId) };
-  persistFees(state.fees.map(f=>f.id===existing.id?record:f));
-  notify("Adjustment removed.");
-  render();
-}
-function feeAdjustmentPanel(studentId, term, scope){
-  if (!studentId) return "";
-  const f = state.fees.find(x=>x.studentId===studentId && x.term===term);
-  const adjustments = f ? (f.adjustments||[]) : [];
-  const totalDue = feeTotalDue(f);
-  const paid = f ? f.amountPaid : 0;
-  return `<div class="card pad" style="margin-top:16px;">
-    <div class="section-title"><h2>Fee adjustments — ${esc(term)}</h2></div>
-    <p class="section-sub">Add extra charges (e.g. PTA levy, late fee) or discounts (e.g. scholarship) on top of the base fee. Use a negative amount for a discount.</p>
-    <div style="display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:4px;"><span style="color:#8a8375;">Base amount due</span><b style="color:var(--navy);">₦${(f?f.amountDue:0).toLocaleString()}</b></div>
-    <div style="display:flex; justify-content:space-between; font-size:13.5px; margin-bottom:4px;"><span style="color:#8a8375;">Adjustments</span><b style="color:var(--navy);">${feeAdjTotal(f)>=0?"+":""}₦${feeAdjTotal(f).toLocaleString()}</b></div>
-    <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:12px; border-top:1px solid var(--line); padding-top:8px;"><span style="color:#8a8375;">Total due</span><b style="color:var(--wine);">₦${totalDue.toLocaleString()}</b></div>
-    ${adjustments.length===0 ? `<div class="empty">No adjustments yet.</div>` :
-      adjustments.map(a => `<div class="row-item"><span style="font-size:13.5px; color:var(--navy);">${esc(a.label)}</span><span style="display:flex; align-items:center; gap:8px;"><b style="color:${a.amount<0?'#2f7a3d':'var(--wine)'};">${a.amount>=0?"+":""}₦${a.amount.toLocaleString()}</b><button class="btn danger sm" onclick="removeFeeAdjustment('${studentId}','${term}','${a.id}')">✕</button></span></div>`).join("")
-    }
-    <form onsubmit="return handleAddAdjustment(event,'${studentId}','${term}','${scope}')" style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
-      <input class="input" id="adjLabel_${scope}" placeholder="e.g. PTA levy or Scholarship" style="flex:2; min-width:140px;" />
-      <input class="input" id="adjAmount_${scope}" type="number" placeholder="Amount (± ₦)" style="flex:1; min-width:110px;" />
-      <button class="btn navy" type="submit">Add</button>
-    </form>
-  </div>`;
-}
-function handleAddAdjustment(e, studentId, term, scope){
-  e.preventDefault();
-  const label = document.getElementById("adjLabel_"+scope).value;
-  const amount = document.getElementById("adjAmount_"+scope).value;
-  addFeeAdjustment(studentId, term, label, amount);
-  return false;
-}
-function persistClasses(next){ state.classes = next; saveKey(KEYS.classes, next); }
-function persistSessions(next){ state.sessions = next; saveKey(KEYS.sessions, next); }
-function setCurrentSession(sess){
-  state.currentSession = sess;
-  saveKey(KEYS.currentSession, sess);
-  render();
-  notify(`Current session set to ${sess}. New scores will default to this session.`);
-}
-function addSession(v){
-  v = (v||"").trim();
-  if (!v) return;
-  if (state.sessions.includes(v)){ notify("That session already exists.", "bad"); return; }
-  persistSessions(state.sessions.concat([v]));
-  setUI({ newSession:"" });
-  notify(`Session ${v} added.`);
-}
-function removeSession(sess){
-  if (state.sessions.length<=1){ notify("You need at least one session.", "bad"); return; }
-  persistSessions(state.sessions.filter(x=>x!==sess));
-  if (state.currentSession===sess){ setCurrentSession(state.sessions.filter(x=>x!==sess)[0]); }
-  else render();
+function clearSession(){
+  state.token = null; state.user = null;
+  localStorage.removeItem("fissi_token");
+  localStorage.removeItem("fissi_user");
 }
 
-function releaseKey(cls, session, term){ return cls + "||" + session + "||" + term; }
-function persistReleases(next){ state.releases = next; saveKey(KEYS.releases, next); }
-function isReleased(cls, session, term){ return state.releases.includes(releaseKey(cls, session, term)); }
-function setReleased(cls, session, term, on){
-  const key = releaseKey(cls, session, term);
-  const next = on
-    ? (state.releases.includes(key) ? state.releases : state.releases.concat([key]))
-    : state.releases.filter(k => k !== key);
-  state.releases = next;
-  saveKey(KEYS.releases, next);
+document.getElementById("logoutBtn").addEventListener("click", () => {
+  clearSession();
   render();
-  notify(on ? `Results released to ${cls} students for ${session} ${term}.` : `Results withheld from ${cls} students for ${session} ${term}.`);
-}
+});
 
-function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
-
-/* ------------------------------------------------------------------ */
-/* CREST                                                                */
-/* ------------------------------------------------------------------ */
-function crestSVG(size){
-  size = size || 100;
-  const h = Math.round(size*1.18);
-  return `
-  <svg class="crest-svg" width="${size}" height="${h}" viewBox="0 0 220 260" role="img" aria-label="FISSI crest">
-    <defs>
-      <linearGradient id="shieldGold" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#DBBB6E" /><stop offset="100%" stop-color="#B78F38" />
-      </linearGradient>
-    </defs>
-    <path d="M110 6 L204 34 V120 C204 176 166 220 110 250 C54 220 16 176 16 120 V34 Z" fill="url(#shieldGold)" stroke="#0B1F3B" stroke-width="4"/>
-    <path d="M110 16 L196 42 V120 C196 170 162 210 110 238 C58 210 24 170 24 120 V42 Z" fill="url(#shieldGold)" stroke="#0B1F3B" stroke-width="1.5" opacity="0.4"/>
-    <path d="M30 92 L190 158 L182 190 L22 124 Z" fill="#551723"/>
-    <path id="sashPath" d="M28 100 L186 164" fill="none"/>
-    <text fill="#F6F1E4" font-size="10.5" font-weight="700" letter-spacing="0.5">
-      <textPath href="#sashPath" startOffset="50%" text-anchor="middle">FAITH INT'L SEC. SCHOOL ITOBE</textPath>
-    </text>
-    <g transform="translate(128,42) rotate(18)">
-      <rect x="0" y="0" width="8" height="34" rx="3" fill="#0B1F3B"/>
-      <path d="M4 0 C -4 -14, 14 -14, 4 -2 Z" fill="#F6F1E4" stroke="#0B1F3B" stroke-width="1.2"/>
-    </g>
-    <g transform="translate(140,150)">
-      <path d="M0 30 C10 10 34 6 40 22 C44 30 34 34 26 30 C34 40 20 46 10 38 C4 34 -2 34 0 30 Z" fill="#F6F1E4" stroke="#0B1F3B" stroke-width="1.3"/>
-      ${[...Array(10)].map((_,i)=>`<circle cx="${6+(i%5)*6}" cy="${20+Math.floor(i/5)*8}" r="1.4" fill="#081729"/>`).join("")}
-    </g>
-    <g transform="translate(38,158)">
-      <rect x="0" y="14" width="46" height="10" rx="2" fill="#0B1F3B"/>
-      <rect x="4" y="4" width="46" height="10" rx="2" fill="#F6F1E4" stroke="#0B1F3B" stroke-width="1.2"/>
-      <rect x="0" y="-6" width="46" height="10" rx="2" fill="#0B1F3B"/>
-    </g>
-    <g transform="translate(0,238)">
-      <path d="M10 10 L60 0 L60 22 L14 30 Z" fill="#0B1F3B"/>
-      <path d="M210 10 L160 0 L160 22 L206 30 Z" fill="#0B1F3B"/>
-      <rect x="45" y="0" width="130" height="24" fill="#0B1F3B"/>
-      <text x="110" y="16" fill="#C9A24B" font-size="12" font-weight="700" text-anchor="middle" letter-spacing="1">IN GOD WE TRUST</text>
-    </g>
-  </svg>`;
-}
-
-/* ------------------------------------------------------------------ */
-/* RENDER ROOT                                                          */
-/* ------------------------------------------------------------------ */
-function render(){
+/* ---------- login screen ---------- */
+function renderLogin(){
+  document.getElementById("logoutBtn").style.display = "none";
   const app = document.getElementById("app");
-  if (state.loading){
-    app.innerHTML = `<div style="min-height:100vh; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:12px;">
-      ${crestSVG(64)}<p style="font-size:13px; color:var(--navy);">Loading FISSI portal…</p>
-    </div>`;
-    return;
-  }
+  app.innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-eyebrow">Staff &amp; Admin Sign In</div>
+        <h1>Welcome back</h1>
+        <div class="login-sub">Sign in to manage FISSI-PORTAL.</div>
+        <form id="loginForm">
+          <div class="field">
+            <label class="field-label">Email</label>
+            <input class="input" type="email" id="loginEmail" required autocomplete="username" />
+          </div>
+          <div class="field">
+            <label class="field-label">Password</label>
+            <input class="input" type="password" id="loginPassword" required autocomplete="current-password" />
+          </div>
+          <button class="btn primary" type="submit" id="loginBtn">Sign in</button>
+        </form>
+        <div id="loginMsg" class="form-msg" style="display:none;"></div>
+        <div class="switch-note">New staff account? <button id="showSignup">Request access</button></div>
+      </div>
+    </div>
+  `;
+  document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const btn = document.getElementById("loginBtn");
+    const msg = document.getElementById("loginMsg");
+    msg.style.display = "none";
+    btn.disabled = true; btn.textContent = "Signing in…";
+    try {
+      const data = await api("/api/auth/login", { method:"POST", body: JSON.stringify({ email, password }) });
+      setSession(data.token, data.user);
+      toast("Welcome, " + (data.user.fullName || data.user.email));
+      render();
+    } catch(err){
+      msg.textContent = err.message;
+      msg.style.display = "block";
+    } finally {
+      btn.disabled = false; btn.textContent = "Sign in";
+    }
+  });
+  document.getElementById("showSignup").addEventListener("click", renderSignup);
+}
 
-  let body = "";
-  if (!state.session){
-    if (state.screen === "login") body = renderLogin();
-    else if (state.screen === "signup") body = renderSignup();
-    else if (state.screen === "forgotPassword") body = renderForgotPassword();
-    else body = renderHome();
-  } else {
-    if (state.screen === "changePassword") body = renderChangePassword();
-    else body = renderDashboard();
-  }
+/* ---------- signup screen ---------- */
+function renderSignup(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="login-wrap">
+      <div class="login-card">
+        <div class="login-eyebrow">Request Access</div>
+        <h1>Create an account</h1>
+        <div class="login-sub">An admin will review and approve your account before you can sign in.</div>
+        <form id="signupForm">
+          <div class="field">
+            <label class="field-label">Full name</label>
+            <input class="input" type="text" id="suName" required />
+          </div>
+          <div class="field">
+            <label class="field-label">Email</label>
+            <input class="input" type="email" id="suEmail" required />
+          </div>
+          <div class="field">
+            <label class="field-label">Password</label>
+            <input class="input" type="password" id="suPassword" required minlength="6" />
+          </div>
+          <div class="field">
+            <label class="field-label">Role</label>
+            <select class="input" id="suRole">
+              <option value="TEACHER">Teacher</option>
+              <option value="CASHIER">Cashier</option>
+              <option value="ADMIN">Admin</option>
+            </select>
+          </div>
+          <button class="btn primary" type="submit" id="signupBtn">Request access</button>
+          <button class="btn ghost" type="button" id="backToLogin">Back to sign in</button>
+        </form>
+        <div id="signupMsg" class="form-msg" style="display:none;"></div>
+      </div>
+    </div>
+  `;
+  document.getElementById("backToLogin").addEventListener("click", renderLogin);
+  document.getElementById("signupForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById("suName").value.trim();
+    const email = document.getElementById("suEmail").value.trim();
+    const password = document.getElementById("suPassword").value;
+    const role = document.getElementById("suRole").value;
+    const btn = document.getElementById("signupBtn");
+    const msg = document.getElementById("signupMsg");
+    msg.style.display = "none";
+    btn.disabled = true; btn.textContent = "Submitting…";
+    try {
+      await api("/api/auth/signup", { method:"POST", body: JSON.stringify({ fullName, email, password, role }) });
+      toast("Request submitted. Awaiting admin approval.");
+      renderLogin();
+    } catch(err){
+      msg.textContent = err.message;
+      msg.style.display = "block";
+    } finally {
+      btn.disabled = false; btn.textContent = "Request access";
+    }
+  });
+}
+
+/* ---------- dashboard shell ---------- */
+function renderDashboard(){
+  document.getElementById("logoutBtn").style.display = "inline-flex";
+  const app = document.getElementById("app");
+  const u = state.user;
+  const isAdmin = u.role === "ADMIN";
 
   app.innerHTML = `
-    <header class="topbar">
-      <div class="topbar-inner">
-        <button class="brand" onclick="goHome()">
-          ${crestSVG(40)}
-          <span>
-            <span class="brand-name" style="display:block;">Faith International Secondary School</span>
-            <span class="brand-sub" style="display:block;">ITOBE · OFU LGA · KOGI STATE</span>
-          </span>
-        </button>
-        ${state.session ? `
-          <div style="display:flex; align-items:center; gap:10px;">
-            <span class="session-chip">${esc(state.session.name)} · <span style="text-transform:capitalize;">${esc(state.session.role)}</span></span>
-            <button class="btn ghost sm" onclick="state.screen='changePassword'; state.ui={}; render();">Change password</button>
-            <button class="logout-btn" onclick="logout()">Log out</button>
-          </div>` : ""}
+    <div class="greet">
+      <div class="eyebrow">Dashboard</div>
+      <h1>${u.fullName || u.email}</h1>
+      <span class="role-pill">${u.role}</span>
+    </div>
+    ${isAdmin ? `
+      <div class="tabs">
+        <button class="tab ${state.tab==='pending'?'active':''}" data-tab="pending">Pending Signups</button>
+        <button class="tab ${state.tab==='users'?'active':''}" data-tab="users">All Users</button>
       </div>
-    </header>
-    ${state.toast ? `<div class="toast ${state.toast.tone==='bad'?'bad':''}">${esc(state.toast.msg)}</div>` : ""}
-    ${state.syncIssue ? `<div class="toast" style="top:auto; bottom:16px; background:#8a5a10;">Having trouble syncing to the server right now — your changes are saved on this device and will keep retrying.</div>` : ""}
-    <main>${body}</main>
-    <footer>Faith International Secondary School, Itobe — Ofu LGA, Kogi State · <b>In God We Trust</b></footer>
+      <div id="tabContent"></div>
+    ` : `
+      <div class="card stub">
+        <h2>${u.role.charAt(0) + u.role.slice(1).toLowerCase()} tools</h2>
+        <p>Your account is approved and signed in. Role-specific tools for ${u.role.toLowerCase()}s are the next thing to wire up to this dashboard.</p>
+      </div>
+    `}
   `;
-}
 
-function goHome(){ if(!state.session){ state.screen="home"; render(); } }
-function logout(){ state.session=null; state.screen="home"; state.ui={}; render(); }
-
-/* ------------------------------------------------------------------ */
-/* HOME                                                                 */
-/* ------------------------------------------------------------------ */
-function renderHome(){
-  return `
-    <div class="hero">
-      ${crestSVG(120)}
-      <h1>Faith International Secondary School, Itobe</h1>
-      <p>One portal for students, teachers, cashiers and administrators — results, assignments, fees and school records, all in one place.</p>
-      <div class="hero-actions">
-        <button class="btn primary" onclick="state.screen='login'; render();">Log in</button>
-        <button class="btn ghost" onclick="state.screen='signup'; render();">Create an account</button>
-      </div>
-    </div>
-    <div class="tiles">
-      <div class="card pad tile"><h3>For students</h3><p>Check results once approved, track assignments and exams, and see your fee balance.</p></div>
-      <div class="card pad tile"><h3>For teachers</h3><p>Enter scores, set assignments and exams, and check who still owes fees.</p></div>
-      <div class="card pad tile"><h3>For admin &amp; cashiers</h3><p>Approve accounts and results, manage subjects, and record fee payments.</p></div>
-    </div>
-  `;
-}
-
-/* ------------------------------------------------------------------ */
-/* LOGIN                                                                */
-/* ------------------------------------------------------------------ */
-function renderLogin(){
-  const err = state.ui.loginErr || "";
-  return `
-  <div class="auth-wrap">
-    <div class="card pad">
-      <div class="section-title"><h2>Log in</h2></div>
-      <form onsubmit="return doLogin(event)">
-        <label class="field"><span class="field-label">Username</span>
-          <input class="input" id="loginUsername" value="${esc(state.ui.loginUsername||"")}" />
-        </label>
-        <label class="field"><span class="field-label">Password</span>
-          <div style="display:flex; gap:6px;">
-            <input class="input" type="password" id="loginPassword" style="flex:1;" value="${esc(state.ui.loginPassword||"")}" />
-            <button type="button" class="btn ghost sm" onclick="togglePwd('loginPassword', this)">Show</button>
-          </div>
-        </label>
-        ${err ? `<div class="err-box">${esc(err)}</div>` : ""}
-        <button class="btn primary block" type="submit">Log in</button>
-      </form>
-      <p class="center-note">New here? <button class="link-btn" onclick="state.screen='signup'; render();">Create an account</button></p>
-      <p class="center-note"><button class="link-btn" onclick="state.screen='forgotPassword'; state.ui={}; render();">Forgot your password?</button></p>
-    </div>
-  </div>`;
-}
-function togglePwd(inputId, btn){
-  const el = document.getElementById(inputId);
-  const showing = el.type === "text";
-  el.type = showing ? "password" : "text";
-  btn.textContent = showing ? "Show" : "Hide";
-}
-function doLogin(e){
-  e.preventDefault();
-  const username = document.getElementById("loginUsername").value.trim();
-  const password = document.getElementById("loginPassword").value;
-  const u = state.users.find(x => x.username.toLowerCase()===username.toLowerCase() && x.password===password);
-  if (!u){ setUI({loginErr:"Username or password is incorrect.", loginUsername:username, loginPassword:password}); return false; }
-  if (u.status === "pending"){ setUI({loginErr:"Your account is awaiting admin approval. Please check back soon.", loginUsername:username, loginPassword:password}); return false; }
-  state.session = u; state.screen="dashboard"; state.ui={};
-  render();
-  notify("Welcome back, " + u.name.split(" ")[0] + ".");
-  return false;
-}
-
-/* ------------------------------------------------------------------ */
-/* FORGOT PASSWORD (sends a request to admin, since there's no email)  */
-/* ------------------------------------------------------------------ */
-function renderForgotPassword(){
-  const sent = state.ui.resetSent;
-  return `
-  <div class="auth-wrap">
-    <div class="card pad">
-      <div class="section-title"><h2>Forgot password</h2></div>
-      ${sent ? `
-        <p class="section-sub">Request sent. Your school admin will reset your password and share the new one with you directly.</p>
-        <button class="btn primary block" onclick="state.screen='login'; state.ui={}; render();">Back to log in</button>
-      ` : `
-        <p class="section-sub">There's no email on file, so a school admin will reset it for you. Enter your username and we'll flag it for them.</p>
-        <form onsubmit="return doForgotPassword(event)">
-          <label class="field"><span class="field-label">Username</span>
-            <input class="input" id="forgotUsername" value="${esc(state.ui.forgotUsername||"")}" />
-          </label>
-          ${state.ui.forgotErr ? `<div class="err-box">${esc(state.ui.forgotErr)}</div>` : ""}
-          <button class="btn primary block" type="submit">Send request to admin</button>
-        </form>
-        <p class="center-note"><button class="link-btn" onclick="state.screen='login'; state.ui={}; render();">Back to log in</button></p>
-      `}
-    </div>
-  </div>`;
-}
-function doForgotPassword(e){
-  e.preventDefault();
-  const username = document.getElementById("forgotUsername").value.trim();
-  const u = state.users.find(x => x.username.toLowerCase()===username.toLowerCase());
-  if (!u){ setUI({forgotErr:"No account found with that username.", forgotUsername:username}); return false; }
-  const req = { id: uid(), userId: u.id, username: u.username, name: u.name, requestedAt: new Date().toISOString(), status:"pending" };
-  persistPasswordResets(state.passwordResets.concat([req]));
-  setUI({resetSent:true});
-  return false;
-}
-function persistPasswordResets(next){ state.passwordResets = next; saveKey(KEYS.passwordResets, next); }
-function resolvePasswordReset(reqId){
-  const req = state.passwordResets.find(r => r.id===reqId);
-  if (!req) return;
-  const tempPassword = "reset" + Math.floor(1000 + Math.random()*9000);
-  persistUsers(state.users.map(u => u.id===req.userId ? { ...u, password: tempPassword } : u));
-  persistPasswordResets(state.passwordResets.map(r => r.id===reqId ? { ...r, status:"resolved" } : r));
-  render();
-  notify(`New password for ${req.name}: ${tempPassword} — share this with them directly.`);
-}
-function dismissPasswordReset(reqId){
-  persistPasswordResets(state.passwordResets.filter(r => r.id!==reqId));
-  render();
-}
-
-/* ------------------------------------------------------------------ */
-/* CHANGE PASSWORD (for any logged-in user)                            */
-/* ------------------------------------------------------------------ */
-function renderChangePassword(){
-  const err = state.ui.cpErr || "";
-  return `
-  <div class="auth-wrap">
-    <div class="card pad">
-      <div class="section-title"><h2>Change password</h2></div>
-      <form onsubmit="return doChangePassword(event)">
-        <label class="field"><span class="field-label">Current password</span>
-          <div style="display:flex; gap:6px;">
-            <input class="input" type="password" id="cpCurrent" style="flex:1;" />
-            <button type="button" class="btn ghost sm" onclick="togglePwd('cpCurrent', this)">Show</button>
-          </div>
-        </label>
-        <label class="field"><span class="field-label">New password</span>
-          <div style="display:flex; gap:6px;">
-            <input class="input" type="password" id="cpNew" style="flex:1;" />
-            <button type="button" class="btn ghost sm" onclick="togglePwd('cpNew', this)">Show</button>
-          </div>
-        </label>
-        <label class="field"><span class="field-label">Confirm new password</span>
-          <div style="display:flex; gap:6px;">
-            <input class="input" type="password" id="cpConfirm" style="flex:1;" />
-            <button type="button" class="btn ghost sm" onclick="togglePwd('cpConfirm', this)">Show</button>
-          </div>
-        </label>
-        ${err ? `<div class="err-box">${esc(err)}</div>` : ""}
-        <button class="btn primary block" type="submit">Update password</button>
-      </form>
-      <p class="center-note"><button class="link-btn" onclick="state.screen='dashboard'; state.ui={}; render();">Cancel</button></p>
-    </div>
-  </div>`;
-}
-function doChangePassword(e){
-  e.preventDefault();
-  const current = document.getElementById("cpCurrent").value;
-  const next = document.getElementById("cpNew").value;
-  const confirm = document.getElementById("cpConfirm").value;
-  if (current !== state.session.password){ setUI({cpErr:"Current password is incorrect."}); return false; }
-  if (!next || next.length < 4){ setUI({cpErr:"New password must be at least 4 characters."}); return false; }
-  if (next !== confirm){ setUI({cpErr:"New passwords don't match."}); return false; }
-  const updated = { ...state.session, password: next };
-  persistUsers(state.users.map(u => u.id===state.session.id ? updated : u));
-  state.session = updated;
-  state.screen = "dashboard"; state.ui = {};
-  render();
-  notify("Password updated.");
-  return false;
-}
-
-/* ------------------------------------------------------------------ */
-/* SIGNUP                                                               */
-/* ------------------------------------------------------------------ */
-function renderSignup(){
-  const role = state.ui.signupRole || "student";
-  const err = state.ui.signupErr || "";
-  const roles = [["student","Student"],["teacher","Teacher"],["cashier","Cashier"],["admin","Admin"]];
-  return `
-  <div class="auth-wrap">
-    <div class="card pad">
-      <div class="section-title"><h2>Create an account</h2></div>
-      <p class="section-sub">New accounts are reviewed by an admin before you can sign in.</p>
-      <form onsubmit="return doSignup(event)">
-        <label class="field"><span class="field-label">Full name</span>
-          <input class="input" id="suName" value="${esc(state.ui.suName||"")}" oninput="state.ui.suName=this.value" />
-        </label>
-        <label class="field"><span class="field-label">Username</span>
-          <input class="input" id="suUsername" value="${esc(state.ui.suUsername||"")}" oninput="state.ui.suUsername=this.value" />
-        </label>
-        <label class="field"><span class="field-label">Password</span>
-          <div style="display:flex; gap:6px;">
-            <input class="input" type="password" id="suPassword" style="flex:1;" value="${esc(state.ui.suPassword||"")}" oninput="state.ui.suPassword=this.value" />
-            <button type="button" class="btn ghost sm" onclick="togglePwd('suPassword', this)">Show</button>
-          </div>
-        </label>
-        <div class="field">
-          <span class="field-label">I am a…</span>
-          <div class="role-grid">
-            ${roles.map(([v,label]) => `<button type="button" class="role-opt ${role===v?'active':''}" onclick="setUI({signupRole:'${v}'})">${label}</button>`).join("")}
-          </div>
-        </div>
-        ${role === "student" ? `
-        <label class="field"><span class="field-label">Class</span>
-          <select class="input" id="suClass" onchange="state.ui.suClass=this.value">
-            ${state.classes.map(c => `<option ${((state.ui.suClass||state.classes[0])===c)?'selected':''}>${esc(c)}</option>`).join("")}
-          </select>
-        </label>
-        <label class="field"><span class="field-label">Admission number</span>
-          <input class="input" id="suAdmissionNo" placeholder="e.g. FISSI/2024/013" value="${esc(state.ui.suAdmissionNo||"")}" oninput="state.ui.suAdmissionNo=this.value" />
-        </label>` : ""}
-        ${err ? `<div class="err-box">${esc(err)}</div>` : ""}
-        <button class="btn primary block" type="submit">Sign up</button>
-      </form>
-      <p class="center-note">Already registered? <button class="link-btn" onclick="state.screen='login'; render();">Log in</button></p>
-    </div>
-  </div>`;
-}
-function doSignup(e){
-  e.preventDefault();
-  const name = document.getElementById("suName").value.trim();
-  const username = document.getElementById("suUsername").value.trim();
-  const password = document.getElementById("suPassword").value;
-  const role = state.ui.signupRole || "student";
-  if (!name || !username || !password){
-    setUI({signupErr:"Please fill in every field.", suName:name, suUsername:username});
-    return false;
+  if (isAdmin) {
+    app.querySelectorAll(".tab").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.tab = btn.dataset.tab;
+        renderDashboard();
+      });
+    });
+    if (state.tab === "pending") loadPendingSignups();
+    else loadAllUsers();
   }
-  if (state.users.some(u => u.username.toLowerCase()===username.toLowerCase())){
-    setUI({signupErr:"That username is already taken.", suName:name, suUsername:username});
-    return false;
-  }
-  const studentClass = role === "student" ? (state.ui.suClass || state.classes[0] || "") : undefined;
-  const admissionNo = role === "student" ? (document.getElementById("suAdmissionNo").value.trim() || undefined) : undefined;
-  const newUser = { id: uid(), name, username, password, role, status: "pending", studentClass, admissionNo };
-  persistUsers(state.users.concat([newUser]));
-  state.screen = "login"; state.ui = {};
-  render();
-  notify("Account created. An admin needs to approve it before you can log in.");
-  return false;
 }
 
-/* ------------------------------------------------------------------ */
-/* DASHBOARD ROUTER                                                     */
-/* ------------------------------------------------------------------ */
-function renderDashboard(){
-  const role = state.session.role;
-  if (role==="admin") return renderAdmin();
-  if (role==="teacher") return renderTeacher();
-  if (role==="cashier") return renderCashier();
-  return renderStudent();
-}
-function tabsHTML(tabs, activeKey, onClickFn){
-  return `<div class="tabs">${tabs.map(t => `<button class="tab ${activeKey===t.key?'active':''}" onclick="${onClickFn}('${t.key}')">${esc(t.label)}</button>`).join("")}</div>`;
-}
-function pill(tone, text){ return `<span class="pill ${tone}">${esc(text)}</span>`; }
-
-/* ---------------------------- STUDENT -------------------------------- */
-function setStudentTab(k){ setUI({studentTab:k}); }
-function renderStudent(){
-  const tab = state.ui.studentTab || "results";
-  const s = state.session;
-  const myResults = state.academics.results.filter(r => r.studentId===s.id);
-  const myAssignments = state.academics.assignments;
-  const myFee = state.fees.find(f => f.studentId===s.id);
-
-  let inner = "";
-  if (tab === "results"){
-    const session = state.ui.studentResultsSession || state.currentSession;
-    const term = state.ui.studentResultsTerm || "1st Term";
-    const released = s.studentClass ? isReleased(s.studentClass, session, term) : false;
-    const termResults = myResults.filter(r => r.session===session && r.term===term);
-    const approvedForTerm = termResults.filter(r => r.approved);
-    const total = approvedForTerm.reduce((sum,r)=>sum+Number(r.score),0);
-    const average = approvedForTerm.length ? total/approvedForTerm.length : 0;
-    const { ranked, classSize } = s.studentClass ? classResultsFor(s.studentClass, session, term) : { ranked:[], classSize:0 };
-    const mine = ranked.find(r => r.student.id===s.id);
-    inner = `<div class="card pad">
-      <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-        <select class="input" style="width:auto;" onchange="setUI({studentResultsSession:this.value})">
-          ${state.sessions.map(sess => `<option ${sess===session?'selected':''}>${esc(sess)}</option>`).join("")}
-        </select>
-        <select class="input" style="width:auto;" onchange="setUI({studentResultsTerm:this.value})">
-          ${TERMS.map(t => `<option ${t===term?'selected':''}>${esc(t)}</option>`).join("")}
-        </select>
-      </div>
-      ${!released ? `<div class="empty">Results for ${esc(session)} ${esc(term)} have not been released for viewing yet. Please check back once your school makes them available.</div>` : `
-        ${termResults.length===0 ? `<div class="empty">No results have been entered for you yet this term.</div>` :
-          termResults.map(r => `
-            <div class="row-item">
-              <div><p class="row-title">${esc(r.subject)}</p><p class="row-sub">${esc(r.session)} · ${esc(r.term)}${r.approved && r.remark ? " · "+esc(r.remark) : ""}</p></div>
-              ${r.approved ? `<span style="font-size:20px; font-weight:800; color:var(--wine);">${r.score}<span style="font-size:11px; color:#b0a996;">/100</span></span>` : pill("warn","Awaiting admin approval")}
-            </div>`).join("")
-        }
-        ${approvedForTerm.length>0 ? `
-          <div style="display:flex; justify-content:space-between; font-size:13px; margin-top:14px; padding-top:10px; border-top:1px solid var(--line);">
-            <span>Average: <b>${average.toFixed(1)}%</b></span>
-            <span>Position: <b>${mine ? ordinal(mine.position)+" of "+classSize : "Not yet ranked"}</b></span>
-          </div>
-          <button class="btn navy block" style="margin-top:12px;" onclick="printReportCard('${s.id}','${session}','${term}')">Print report card</button>
-        ` : ""}
-        <p style="font-size:11px; color:#b0a996; margin-top:14px;">Results only appear here — and can only be printed — once an admin has approved and released them.</p>
-      `}
-    </div>`;
-  } else if (tab === "work"){
-    inner = `<div class="card pad">
-      ${myAssignments.length===0 ? `<div class="empty">Nothing has been assigned yet.</div>` :
-        myAssignments.map(a => `
-          <div class="row-item">
-            <div><p class="row-title">${esc(a.title)}</p><p class="row-sub">${esc(a.subject)}</p></div>
-            ${pill(a.type==="exam"?"bad":"neutral", (a.type==="exam"?"Exam":"Assignment")+" · due "+a.dueDate)}
-          </div>`).join("")
-      }
-    </div>`;
-  } else {
-    inner = `<div class="card pad">
-      ${!myFee ? `<div class="empty">No fee record has been set up for you yet — please see the cashier.</div>` : `
-        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px;"><span style="color:#8a8375;">Term</span><b style="color:var(--navy);">${esc(myFee.term)}</b></div>
-        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px;"><span style="color:#8a8375;">Base amount due</span><b style="color:var(--navy);">₦${myFee.amountDue.toLocaleString()}</b></div>
-        ${(myFee.adjustments||[]).map(a => `<div style="display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; padding-left:8px;"><span style="color:#8a8375;">${esc(a.label)}</span><b style="color:${a.amount<0?'#2f7a3d':'var(--wine)'};">${a.amount>=0?"+":""}₦${a.amount.toLocaleString()}</b></div>`).join("")}
-        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:8px; border-top:1px solid var(--line); padding-top:8px;"><span style="color:#8a8375;">Total due</span><b style="color:var(--navy);">₦${feeTotalDue(myFee).toLocaleString()}</b></div>
-        <div style="display:flex; justify-content:space-between; font-size:14px; margin-bottom:12px;"><span style="color:#8a8375;">Amount paid</span><b style="color:var(--navy);">₦${myFee.amountPaid.toLocaleString()}</b></div>
-        ${myFee.amountPaid >= feeTotalDue(myFee) ? pill("good","Fully paid") : pill("bad", "Balance of ₦"+(feeTotalDue(myFee)-myFee.amountPaid).toLocaleString()+" owed")}
-      `}
-    </div>`;
-  }
-
-  return `<div style="padding-top:24px;">
-    <div style="display:flex; align-items:center; gap:12px; margin-bottom:2px;">
-      ${s.photo ? `<img class="dash-avatar" src="${esc(s.photo)}" alt="" />` : ""}
-      <div class="section-title" style="margin-bottom:0;"><h2>Welcome, ${esc(s.name.split(" ")[0])}</h2></div>
-    </div>
-    <p class="section-sub" style="margin-top:-10px;">Class: ${esc(s.studentClass || "Not yet assigned")}</p>
-    ${tabsHTML([{key:"results",label:"My results"},{key:"work",label:"Assignments & exams"},{key:"fees",label:"Fee status"}], tab, "setStudentTab")}
-    ${inner}
-  </div>`;
-}
-
-/* ---------------------------- TEACHER --------------------------------- */
-function setTeacherTab(k){ setUI({teacherTab:k}); }
-function renderTeacher(){
-  const tab = state.ui.teacherTab || "scores";
-  const s = state.session;
-  const students = state.users.filter(u => u.role==="student" && u.status==="approved");
-  const query = state.ui.teacherQuery || "";
-  const selectedId = state.ui.teacherStudentId || "";
-  const subject = state.ui.teacherSubject || state.subjects[0] || "";
-  const term = state.ui.teacherTerm || "1st Term";
-  const session = state.ui.teacherSession || state.currentSession;
-
-  let inner = "";
-  if (tab === "scores"){
-    const classFilter = state.ui.teacherClassFilter || "all";
-    const filtered = students
-      .filter(st => classFilter==="all" || (st.studentClass||"Unassigned")===classFilter)
-      .filter(st => st.name.toLowerCase().includes(query.toLowerCase()))
-      .sort((a,b) => a.name.localeCompare(b.name));
-    const selectedName = (students.find(st=>st.id===selectedId)||{}).name || "None selected";
-    const editingId = state.ui.teacherEditingId || "";
-    const mine = state.academics.results.filter(r => r.studentId===selectedId && r.enteredBy===s.id);
-    inner = `<div class="two-col">
-      <div class="card pad">
-        <div class="section-title"><h2>Find a student</h2></div>
-        <p class="section-sub">Pick a class, then search or select a student.</p>
-        <select class="input" style="margin-bottom:10px;" onchange="setUI({teacherClassFilter:this.value})">
-          <option value="all" ${classFilter==='all'?'selected':''}>All classes</option>
-          ${state.classes.map(c => `<option ${classFilter===c?'selected':''}>${esc(c)}</option>`).join("")}
-        </select>
-        <input class="input" placeholder="Search by name…" value="${esc(query)}" oninput="setUI({teacherQuery:this.value})" />
-        <div class="search-list">
-          ${filtered.length===0 ? `<div class="empty">No matching students.</div>` :
-            filtered.map(st => `<button class="search-item ${selectedId===st.id?'active':''}" onclick="setUI({teacherStudentId:'${st.id}', teacherEditingId:''})"><span>${esc(st.name)} <span style="color:#9a927e; font-weight:400;">· ${esc(st.studentClass||"—")}</span></span><span>›</span></button>`).join("")
-          }
-        </div>
-      </div>
-      <div class="card pad">
-        <div class="section-title"><h2>${editingId ? "Edit score" : "Submit score"}</h2></div>
-        <form onsubmit="return submitScore(event)">
-          <label class="field"><span class="field-label">Selected student</span><input class="input" disabled value="${esc(selectedName)}" /></label>
-          <label class="field"><span class="field-label">Subject</span>
-            <select class="input" onchange="setUI({teacherSubject:this.value})">
-              ${state.subjects.map(sub => `<option ${sub===subject?'selected':''}>${esc(sub)}</option>`).join("")}
-            </select>
-          </label>
-          <label class="field"><span class="field-label">Session</span>
-            <select class="input" onchange="setUI({teacherSession:this.value})">
-              ${state.sessions.map(sess => `<option ${sess===session?'selected':''}>${esc(sess)}</option>`).join("")}
-            </select>
-          </label>
-          <label class="field"><span class="field-label">Term</span>
-            <select class="input" onchange="setUI({teacherTerm:this.value})">
-              ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
-            </select>
-          </label>
-          <label class="field"><span class="field-label">Score (out of 100)</span>
-            <input class="input" type="number" min="0" max="100" id="teacherScore" value="${esc(state.ui.teacherScore||"")}" oninput="state.ui.teacherScore=this.value" />
-          </label>
-          <label class="field"><span class="field-label">Remark</span>
-            <textarea class="input" id="teacherRemark" rows="2" placeholder="e.g. Good improvement this term" oninput="state.ui.teacherRemark=this.value">${esc(state.ui.teacherRemark||"")}</textarea>
-          </label>
-          <div style="display:flex; gap:8px;">
-            <button class="btn primary block" type="submit">${editingId ? "Save changes" : "Submit for approval"}</button>
-            ${editingId ? `<button class="btn ghost" type="button" onclick="cancelEditScore()">Cancel</button>` : ""}
-          </div>
-        </form>
-      </div>
-      <div class="card pad" style="grid-column:1/-1;">
-        <div class="section-title"><h2>Scores you've entered for ${esc(selectedName)}</h2></div>
-        ${!selectedId ? `<div class="empty">Select a student to see and manage their scores.</div>` :
-          mine.length===0 ? `<div class="empty">You haven't entered any scores for this student yet.</div>` :
-          mine.map(r => `
-            <div class="row-item">
-              <div><p class="row-title">${esc(r.subject)} · ${esc(r.session||"—")} · ${esc(r.term)}</p><p class="row-sub">${r.score}/100${r.remark?" · "+esc(r.remark):""}</p></div>
-              <div class="row-actions">
-                ${r.approved ? pill("good","Approved") : pill("warn","Pending")}
-                <button class="btn ghost sm" onclick="editScore('${r.id}')">Edit</button>
-                <button class="btn danger sm" onclick="deleteScore('${r.id}')">Delete</button>
-              </div>
-            </div>`).join("")
-        }
-      </div>
-    </div>`;
-  } else if (tab === "work"){
-    inner = `<div class="card pad" style="max-width:420px;">
-      <div class="section-title"><h2>Post an assignment or exam</h2></div>
-      <form onsubmit="return submitAssignment(event)">
-        <label class="field"><span class="field-label">Title</span><input class="input" id="assignTitle" placeholder="e.g. Essay on climate change" value="${esc(state.ui.assignTitle||"")}" oninput="state.ui.assignTitle=this.value" /></label>
-        <label class="field"><span class="field-label">Subject</span>
-          <select class="input" id="assignSubject">${state.subjects.map(sub=>`<option>${esc(sub)}</option>`).join("")}</select>
-        </label>
-        <div class="field">
-          <span class="field-label">Type</span>
-          <div class="role-grid" style="grid-template-columns:1fr 1fr;">
-            ${["assignment","exam"].map(t => `<button type="button" class="role-opt ${((state.ui.assignType||"assignment")===t)?'active':''}" onclick="setUI({assignType:'${t}'})" style="text-transform:capitalize;">${t}</button>`).join("")}
-          </div>
-        </div>
-        <label class="field"><span class="field-label">Due date</span><input class="input" type="date" id="assignDue" value="${esc(state.ui.assignDue||"")}" oninput="state.ui.assignDue=this.value" /></label>
-        <button class="btn primary block" type="submit">Post to students</button>
-      </form>
-    </div>`;
-  } else {
-    inner = `<div class="card pad">
-      <div class="section-title"><h2>Student fee status</h2></div>
-      <p class="section-sub">Read-only — the cashier records payments.</p>
-      ${students.map(st => {
-        const f = state.fees.find(x=>x.studentId===st.id);
-        const p = !f ? pill("neutral","No record") : (f.amountPaid>=feeTotalDue(f) ? pill("good","Paid") : pill("bad","Owes ₦"+(feeTotalDue(f)-f.amountPaid).toLocaleString()));
-        return `<div class="row-item"><span style="font-size:13.5px; font-weight:600; color:var(--navy);">${esc(st.name)}</span>${p}</div>`;
-      }).join("")}
-    </div>`;
-  }
-
-  return `<div style="padding-top:24px;">
-    <div class="section-title"><h2>Teacher dashboard — ${esc(s.name)}</h2></div>
-    ${tabsHTML([{key:"scores",label:"Enter scores"},{key:"work",label:"Post work"},{key:"fees",label:"Fee check"}], tab, "setTeacherTab")}
-    ${inner}
-  </div>`;
-}
-function submitScore(e){
-  e.preventDefault();
-  const studentId = state.ui.teacherStudentId;
-  const score = document.getElementById("teacherScore").value;
-  const remark = document.getElementById("teacherRemark").value.trim();
-  const editingId = state.ui.teacherEditingId;
-  if (!studentId || score===""){ notify("Pick a student and enter a score.","bad"); return false; }
-  const subject = state.ui.teacherSubject || state.subjects[0];
-  const term = state.ui.teacherTerm || "1st Term";
-  const session = state.ui.teacherSession || state.currentSession;
-  if (editingId){
-    const next = state.academics.results.map(r => r.id===editingId ? { ...r, subject, term, session, score:Number(score), remark, approved:false } : r);
-    persistAcademics({ ...state.academics, results: next });
-    notify("Score updated — it will need admin approval again.");
-  } else {
-    const entry = { id:uid(), studentId, subject, term, session, score:Number(score), remark, approved:false, enteredBy: state.session.id };
-    persistAcademics({ ...state.academics, results: state.academics.results.concat([entry]) });
-    notify("Score submitted — it will show for the student once admin approves it.");
-  }
-  setUI({ teacherEditingId:"", teacherScore:"", teacherRemark:"" });
-  render();
-  return false;
-}
-function editScore(id){
-  const r = state.academics.results.find(x=>x.id===id);
-  if (!r) return;
-  setUI({ teacherEditingId:id, teacherSubject:r.subject, teacherTerm:r.term, teacherSession:r.session||state.currentSession, teacherScore:String(r.score), teacherRemark:r.remark||"" });
-}
-function deleteScore(id){
-  const next = state.academics.results.filter(r=>r.id!==id);
-  persistAcademics({ ...state.academics, results: next });
-  notify("Score deleted.");
-  setUI({ teacherEditingId:"", teacherScore:"", teacherRemark:"" });
-}
-function cancelEditScore(){
-  setUI({ teacherEditingId:"", teacherScore:"", teacherRemark:"" });
-}
-function submitAssignment(e){
-  e.preventDefault();
-  const title = document.getElementById("assignTitle").value.trim();
-  const subject = document.getElementById("assignSubject").value;
-  const due = document.getElementById("assignDue").value;
-  const type = state.ui.assignType || "assignment";
-  if (!title || !due){ notify("Give the assignment a title and a due date.","bad"); return false; }
-  const entry = { id:uid(), title, subject, dueDate:due, type, teacherId: state.session.id };
-  persistAcademics({ ...state.academics, assignments: state.academics.assignments.concat([entry]) });
-  notify((type==="exam"?"Exam":"Assignment") + " posted for students.");
-  setUI({ assignTitle:"", assignDue:"" });
-  return false;
-}
-
-/* ---------------------------- CASHIER --------------------------------- */
-function renderCashier(){
-  const s = state.session;
-  const tab = state.ui.cashierTab || "single";
-  return `<div style="padding-top:24px;">
-    <div class="section-title"><h2>Cashier dashboard — ${esc(s.name)}</h2></div>
-    ${tabsHTML([
-      {key:"single", label:"Single update"},
-      {key:"bulk", label:"Bulk upload"},
-    ], tab, "setCashierTab")}
-    ${tab === "bulk" ? renderCashierBulk() : renderCashierSingle()}
-  </div>`;
-}
-function setCashierTab(k){ setUI({cashierTab:k}); }
-function renderCashierSingle(){
-  const students = state.users.filter(u => u.role==="student" && u.status==="approved");
-  const query = state.ui.cashierQuery || "";
-  const selectedId = state.ui.cashierStudentId || "";
-  const term = state.ui.cashierTerm || "1st Term";
-  const existing = state.fees.find(f => f.studentId===selectedId && f.term===term);
-  const filtered = students.filter(st => st.name.toLowerCase().includes(query.toLowerCase()));
-  const selectedName = (students.find(st=>st.id===selectedId)||{}).name || "None selected";
-
-  return `<div class="two-col">
-      <div class="card pad">
-        <div class="section-title"><h2>Find a student</h2></div>
-        <input class="input" placeholder="Search by name…" value="${esc(query)}" oninput="setUI({cashierQuery:this.value})" />
-        <div class="search-list">
-          ${filtered.length===0 ? `<div class="empty">No matching students.</div>` :
-            filtered.map(st => {
-              const f = state.fees.find(x=>x.studentId===st.id);
-              const tag = f ? (f.amountPaid<feeTotalDue(f) ? pill("bad","Owes") : pill("good","Paid")) : "";
-              return `<button class="search-item ${selectedId===st.id?'active':''}" onclick="selectCashierStudent('${st.id}')"><span>${esc(st.name)}</span>${tag}</button>`;
-            }).join("")
-          }
-        </div>
-      </div>
-      <div class="card pad">
-        <div class="section-title"><h2>Update fee payment</h2></div>
-        <form onsubmit="return submitFee(event)">
-          <label class="field"><span class="field-label">Selected student</span><input class="input" disabled value="${esc(selectedName)}" /></label>
-          <label class="field"><span class="field-label">Term</span>
-            <select class="input" onchange="selectCashierTerm(this.value)">
-              ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
-            </select>
-          </label>
-          <label class="field"><span class="field-label">Amount due (₦)</span><input class="input" type="number" min="0" id="feeDue" value="${existing?existing.amountDue:''}" /></label>
-          <label class="field"><span class="field-label">Amount paid (₦)</span><input class="input" type="number" min="0" id="feePaid" value="${existing?existing.amountPaid:''}" /></label>
-          <button class="btn primary block" type="submit">Save payment record</button>
-        </form>
-      </div>
-    </div>
-    ${feeAdjustmentPanel(selectedId, term, "cashier")}`;
-}
-function renderCashierBulk(){
-  const term = state.ui.bulkTerm || "1st Term";
-  const result = state.ui.bulkResult || null;
-  const withAdm = state.users.filter(u => u.role==="student" && u.admissionNo).length;
-  const noAdm = state.users.filter(u => u.role==="student" && !u.admissionNo).length;
-  return `<div class="two-col">
-    <div class="card pad">
-      <div class="section-title"><h2>Upload by admission number</h2></div>
-      <p class="section-sub">Upload a CSV file with one row per student: <b>admission number, amount due, amount paid</b>. Matching students are updated instantly — no need to open each student's page.</p>
-      <label class="field"><span class="field-label">Term this file applies to</span>
-        <select class="input" onchange="setUI({bulkTerm:this.value})">
-          ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
-        </select>
-      </label>
-      <label class="field">
-        <span class="field-label">CSV file</span>
-        <input class="input" type="file" accept=".csv,text/csv,text/plain" onchange="bulkFeeFileUpload(event)" />
-      </label>
-      <button class="btn ghost block sm" type="button" onclick="downloadFeeTemplate()">Download CSV template</button>
-      <p class="fine-note" style="text-align:left; margin-top:12px;">${withAdm} student${withAdm===1?"":"s"} currently ${withAdm===1?"has":"have"} an admission number on file${noAdm ? ` · ${noAdm} student${noAdm===1?"":"s"} still ${noAdm===1?"needs":"need"} one added in Students tab` : ""}.</p>
-    </div>
-    <div class="card pad">
-      <div class="section-title"><h2>Or paste rows directly</h2></div>
-      <p class="section-sub">One student per line: <code>admissionNo, amountDue, amountPaid</code></p>
-      <textarea class="input" id="bulkPasteText" rows="8" placeholder="FISSI/2024/001, 45000, 45000&#10;FISSI/2024/002, 45000, 20000" style="resize:vertical; font-family:monospace; font-size:12.5px;"></textarea>
-      <button class="btn primary block" style="margin-top:12px;" onclick="applyBulkFeePaste()">Apply pasted rows</button>
-      ${result ? `
-        <div style="margin-top:16px;">
-          <p class="row-title" style="margin-bottom:8px;">Last upload result — ${esc(result.term)}</p>
-          ${pill("good", result.updated + " updated")} ${result.notFound.length ? pill("bad", result.notFound.length + " not found") : ""}
-          ${result.notFound.length ? `<p class="fine-note" style="text-align:left; margin-top:8px;">Not found: ${result.notFound.map(esc).join(", ")}</p>` : ""}
-        </div>` : ""}
-    </div>
-  </div>`;
-}
-function parseFeeCSV(text){
-  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  const rows = [];
-  for (const line of lines){
-    const parts = line.split(",").map(p => p.trim());
-    if (parts.length < 3) continue;
-    if (/admission/i.test(parts[0])) continue; // skip header row
-    const [admissionNo, amountDue, amountPaid] = parts;
-    if (!admissionNo) continue;
-    rows.push({ admissionNo, amountDue: Number(amountDue)||0, amountPaid: Number(amountPaid)||0 });
-  }
-  return rows;
-}
-function applyBulkFeeRows(rows, term){
-  const notFound = [];
-  let nextFees = state.fees.slice();
-  let updated = 0;
-  rows.forEach(row => {
-    const student = state.users.find(u => u.role==="student" && (u.admissionNo||"").toLowerCase()===row.admissionNo.toLowerCase());
-    if (!student){ notFound.push(row.admissionNo); return; }
-    const existing = nextFees.find(f => f.studentId===student.id && f.term===term);
-    const record = { id: existing?existing.id:uid(), studentId: student.id, term, amountDue: row.amountDue, amountPaid: row.amountPaid, adjustments: existing?(existing.adjustments||[]):[] };
-    nextFees = existing ? nextFees.map(f => f.id===existing.id ? record : f) : nextFees.concat([record]);
-    updated++;
-  });
-  persistFees(nextFees);
-  setUI({ bulkResult: { term, updated, notFound } });
-  notify(updated ? `Updated ${updated} fee record${updated===1?"":"s"}.` : "No matching admission numbers found.", updated ? "good" : "bad");
-}
-function bulkFeeFileUpload(event){
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-  const term = state.ui.bulkTerm || "1st Term";
-  const reader = new FileReader();
-  reader.onload = () => {
-    const rows = parseFeeCSV(String(reader.result));
-    if (!rows.length){ notify("Couldn't find any valid rows in that file.", "bad"); return; }
-    applyBulkFeeRows(rows, term);
-  };
-  reader.onerror = () => notify("Couldn't read that file.", "bad");
-  reader.readAsText(file);
-}
-function applyBulkFeePaste(){
-  const text = document.getElementById("bulkPasteText").value;
-  const term = state.ui.bulkTerm || "1st Term";
-  const rows = parseFeeCSV(text);
-  if (!rows.length){ notify("Add at least one row first.", "bad"); return; }
-  applyBulkFeeRows(rows, term);
-}
-function downloadFeeTemplate(){
-  const csv = "admissionNo,amountDue,amountPaid\nFISSI/2024/001,45000,45000\nFISSI/2024/002,45000,20000\n";
-  const blob = new Blob([csv], { type: "text/csv" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "fissi-fee-upload-template.csv";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
-function selectCashierStudent(id){ setUI({cashierStudentId:id}); }
-function selectCashierTerm(t){ setUI({cashierTerm:t}); }
-function submitFee(e){
-  e.preventDefault();
-  const studentId = state.ui.cashierStudentId;
-  const term = state.ui.cashierTerm || "1st Term";
-  const amountDue = document.getElementById("feeDue").value;
-  const amountPaid = document.getElementById("feePaid").value;
-  if (!studentId || amountDue===""){ notify("Select a student and enter the amount due.","bad"); return false; }
-  const existing = state.fees.find(f => f.studentId===studentId && f.term===term);
-  const record = { id: existing?existing.id:uid(), studentId, term, amountDue:Number(amountDue), amountPaid:Number(amountPaid||0), adjustments: existing?(existing.adjustments||[]):[] };
-  const next = existing ? state.fees.map(f=>f.id===existing.id?record:f) : state.fees.concat([record]);
-  persistFees(next);
-  notify("Fee record updated.");
-  render();
-  return false;
-}
-
-function submitAdminFee(e){
-  e.preventDefault();
-  const studentId = state.ui.adminFeeStudentId;
-  const term = state.ui.adminFeeTerm || "1st Term";
-  const amountDue = document.getElementById("adminFeeDue").value;
-  const amountPaid = document.getElementById("adminFeePaid").value;
-  if (!studentId || amountDue===""){ notify("Select a student and enter the amount due.","bad"); return false; }
-  const existing = state.fees.find(f => f.studentId===studentId && f.term===term);
-  const record = { id: existing?existing.id:uid(), studentId, term, amountDue:Number(amountDue), amountPaid:Number(amountPaid||0), adjustments: existing?(existing.adjustments||[]):[] };
-  const next = existing ? state.fees.map(f=>f.id===existing.id?record:f) : state.fees.concat([record]);
-  persistFees(next);
-  notify("Fee record updated.");
-  render();
-  return false;
-}
-
-/* ---------------------------- ADMIN ------------------------------------ */
-function setAdminTab(k){ setUI({adminTab:k}); }
-
-/* ---- Class averages / positions / report cards ---- */
-function classResultsFor(studentClass, session, term){
-  const students = state.users.filter(u => u.role==="student" && u.status==="approved" && u.studentClass===studentClass);
-  const rows = students.map(st => {
-    const results = state.academics.results.filter(r => r.studentId===st.id && r.session===session && r.term===term && r.approved);
-    const total = results.reduce((sum,r) => sum + Number(r.score), 0);
-    const count = results.length;
-    const average = count ? total/count : 0;
-    return { student: st, results, total, count, average };
-  });
-  const ranked = rows.filter(r => r.count>0).sort((a,b) => b.average - a.average);
-  let lastAvg = null, lastPos = 0;
-  ranked.forEach((r,i) => {
-    if (r.average !== lastAvg){ lastPos = i+1; lastAvg = r.average; }
-    r.position = lastPos;
-  });
-  const unranked = rows.filter(r => r.count===0).map(r => ({...r, position:null}));
-  return { ranked, unranked, classSize: ranked.length };
-}
-
-function reportCardHTML(studentId, session, term){
-  const st = state.users.find(u=>u.id===studentId);
-  if (!st) return "<p>Student not found.</p>";
-  const results = state.academics.results.filter(r => r.studentId===studentId && r.session===session && r.term===term && r.approved)
-    .sort((a,b) => a.subject.localeCompare(b.subject));
-  const total = results.reduce((sum,r)=>sum+Number(r.score),0);
-  const average = results.length ? (total/results.length) : 0;
-  const { ranked, classSize } = classResultsFor(st.studentClass, session, term);
-  const mine = ranked.find(r => r.student.id===studentId);
-  const posText = mine ? `${ordinal(mine.position)} of ${classSize}` : "Not yet ranked";
-  const today = new Date().toLocaleDateString("en-GB");
-  return `
-    <div class="rc-header" style="display:flex; align-items:center; justify-content:space-between; gap:14px;">
-      <img class="rc-photo" style="border:none; object-fit:contain;" src="${SCHOOL_CREST_DATA_URL}" alt="School badge" />
-      <div style="flex:1; text-align:center;">
-        <h1><span style="color:#0B1F3B;">Faith International Secondary</span> <span style="color:#6E1F2E;">School</span> <span style="color:#9C7A24;">Itobe</span></h1>
-        <p class="rc-loc">Ofu LGA, Kogi State &middot; "In God We Trust"</p>
-        <p class="rc-sub">Student Report Card — ${esc(session)} · ${esc(term)}</p>
-      </div>
-      ${st.photo
-        ? `<img class="rc-photo" src="${esc(st.photo)}" alt="" />`
-        : `<div class="rc-photo" style="display:flex; align-items:center; justify-content:center; font-size:10px; color:#999;">No photo</div>`}
-    </div>
-    <div class="rc-meta">
-      <span><b>Name:</b> ${esc(st.name)}</span>
-      <span><b>Class:</b> ${esc(st.studentClass||"—")}</span>
-      <span><b>Date:</b> ${today}</span>
-    </div>
-    <table class="rc-table">
-      <thead><tr><th>Subject</th><th>Score (/100)</th><th>Remark</th></tr></thead>
-      <tbody>
-        ${results.length===0 ? `<tr><td colspan="3">No approved results yet for this session/term.</td></tr>` :
-          results.map(r => `<tr><td>${esc(r.subject)}</td><td>${r.score}</td><td>${esc(r.remark||"—")}</td></tr>`).join("")}
-      </tbody>
-    </table>
-    <div class="rc-summary">
-      <span>Total: ${total}/${results.length*100}</span>
-      <span>Average: ${average.toFixed(1)}%</span>
-      <span>Position: ${posText}</span>
-    </div>
-    <div class="rc-sign">
-      <div>Class Teacher</div>
-      <div>Principal</div>
-    </div>`;
-}
-
-function ordinal(n){
-  const s = ["th","st","nd","rd"], v = n % 100;
-  return n + (s[(v-20)%10] || s[v] || s[0]);
-}
-
-function printReportCard(studentId, session, term){
-  document.getElementById("printArea").innerHTML = `<div class="rc-page">${reportCardHTML(studentId, session, term)}</div>`;
-  window.print();
-}
-
-function printAllReportCards(cls, session, term){
-  const { ranked } = classResultsFor(cls, session, term);
-  if (ranked.length===0){ notify("No approved results to print for this class/session/term yet.", "bad"); return; }
-  const html = ranked.map(r => `<div class="rc-page">${reportCardHTML(r.student.id, session, term)}</div>`).join("");
-  document.getElementById("printArea").innerHTML = html;
-  window.print();
-}
-
-function renderAdmin(){
-  const tab = state.ui.adminTab || "approvals";
-  const s = state.session;
-  const pendingUsers = state.users.filter(u => u.status==="pending");
-  const pendingResults = state.academics.results.filter(r => !r.approved);
-  const pendingResets = state.passwordResets.filter(r => r.status==="pending");
-  const studentName = id => (state.users.find(u=>u.id===id)||{}).name || "Unknown";
-
-  let inner = "";
-  if (tab === "approvals"){
-    inner = `<div class="card pad">
-      ${pendingUsers.length===0 ? `<div class="empty">No accounts waiting for review.</div>` :
-        pendingUsers.map(u => `
-          <div class="row-item">
-            <div><p class="row-title">${esc(u.name)}</p><p class="row-sub">@${esc(u.username)} · ${esc(u.role)}</p></div>
-            <div class="row-actions">
-              <button class="btn navy sm" onclick="decideUser('${u.id}',true)">Approve</button>
-              <button class="btn danger sm" onclick="decideUser('${u.id}',false)">Reject</button>
-            </div>
-          </div>`).join("")
-      }
-    </div>`;
-  } else if (tab === "results"){
-    inner = `<div class="card pad">
-      ${pendingResults.length===0 ? `<div class="empty">No results are waiting for approval.</div>` :
-        pendingResults.map(r => `
-          <div class="row-item">
-            <div><p class="row-title">${esc(studentName(r.studentId))}</p><p class="row-sub">${esc(r.subject)} · ${esc(r.session||"—")} · ${esc(r.term)} · Score: ${r.score}/100${r.remark?" · "+esc(r.remark):""}</p></div>
-            <div class="row-actions">
-              <button class="btn navy sm" onclick="decideResult('${r.id}',true)">Approve</button>
-              <button class="btn danger sm" onclick="decideResult('${r.id}',false)">Reject</button>
-            </div>
-          </div>`).join("")
-      }
-    </div>`;
-  } else if (tab === "resets"){
-    inner = `<div class="card pad">
-      ${state.passwordResets.length===0 ? `<div class="empty">No password reset requests.</div>` :
-        state.passwordResets.slice().reverse().map(r => `
-          <div class="row-item">
-            <div>
-              <p class="row-title">${esc(r.name)}</p>
-              <p class="row-sub">@${esc(r.username)} · requested ${new Date(r.requestedAt).toLocaleString()} · ${pill(r.status==="pending"?"warn":"good", r.status)}</p>
-            </div>
-            ${r.status==="pending" ? `
-              <div class="row-actions">
-                <button class="btn navy sm" onclick="resolvePasswordReset('${r.id}')">Reset password</button>
-                <button class="btn danger sm" onclick="dismissPasswordReset('${r.id}')">Dismiss</button>
-              </div>` : ""}
-          </div>`).join("")
-      }
-    </div>`;
-  } else if (tab === "classResults"){
-    const cls = state.ui.classResultsClass || state.classes[0] || "";
-    const session = state.ui.classResultsSession || state.currentSession;
-    const term = state.ui.classResultsTerm || "1st Term";
-    const { ranked, unranked, classSize } = classResultsFor(cls, session, term);
-    const released = isReleased(cls, session, term);
-    inner = `<div class="card pad">
-      <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
-        <select class="input" style="width:auto;" onchange="setUI({classResultsClass:this.value})">
-          ${state.classes.map(c => `<option ${c===cls?'selected':''}>${esc(c)}</option>`).join("")}
-        </select>
-        <select class="input" style="width:auto;" onchange="setUI({classResultsSession:this.value})">
-          ${state.sessions.map(sess => `<option ${sess===session?'selected':''}>${esc(sess)}</option>`).join("")}
-        </select>
-        <select class="input" style="width:auto;" onchange="setUI({classResultsTerm:this.value})">
-          ${TERMS.map(t => `<option ${t===term?'selected':''}>${esc(t)}</option>`).join("")}
-        </select>
-      </div>
-      <div class="row-item" style="margin-bottom:14px;">
-        <div><p class="row-title">Release to students</p><p class="row-sub">${released ? "Students in this class can view and print their results for this session/term." : "Students cannot see or print results for this session/term yet."}</p></div>
-        <button class="btn ${released?'danger':'navy'} sm" onclick="setReleased('${cls}','${session}','${term}',${!released})">${released?'Withhold':'Release'}</button>
-      </div>
-      ${classSize>0 ? `<button class="btn navy block" style="margin-bottom:14px;" onclick="printAllReportCards('${cls}','${session}','${term}')">Print all report cards (${classSize})</button>` : ""}
-      ${classSize===0 ? `<div class="empty">No students in ${esc(cls)} have approved results for ${esc(session)} ${esc(term)} yet.</div>` :
-        ranked.map(r => `
-          <div class="row-item">
-            <div><p class="row-title">${ordinal(r.position)} — ${esc(r.student.name)}</p><p class="row-sub">${r.count} subject(s) · Total ${r.total} · Average ${r.average.toFixed(1)}%</p></div>
-            <button class="btn navy sm" onclick="printReportCard('${r.student.id}','${session}','${term}')">Print</button>
-          </div>`).join("")
-      }
-      ${unranked.length===0 ? "" : `
-        <p class="section-sub" style="margin-top:16px;">No approved results yet</p>
-        ${unranked.map(r => `<div class="row-item"><p class="row-title">${esc(r.student.name)}</p></div>`).join("")}
-      `}
-    </div>`;
-  } else if (tab === "fees"){
-    const students = state.users.filter(u=>u.role==="student" && u.status==="approved");
-    const query = state.ui.adminFeeQuery || "";
-    const selectedId = state.ui.adminFeeStudentId || "";
-    const term = state.ui.adminFeeTerm || "1st Term";
-    const existing = state.fees.find(f => f.studentId===selectedId && f.term===term);
-    const filtered = students.filter(st => st.name.toLowerCase().includes(query.toLowerCase()));
-    const selectedName = (students.find(st=>st.id===selectedId)||{}).name || "None selected";
-    inner = `<div class="two-col">
-      <div class="card pad">
-        <div class="section-title"><h2>Students</h2></div>
-        <p class="section-sub">Full fee control — same as the cashier.</p>
-        <input class="input" placeholder="Search by name…" value="${esc(query)}" oninput="setUI({adminFeeQuery:this.value})" />
-        <div class="search-list">
-          ${filtered.length===0 ? `<div class="empty">No matching students.</div>` :
-            filtered.map(st => {
-              const f = state.fees.find(x=>x.studentId===st.id);
-              const tag = f ? (f.amountPaid<feeTotalDue(f) ? pill("bad","Owes") : pill("good","Paid")) : pill("neutral","No record");
-              return `<button class="search-item ${selectedId===st.id?'active':''}" onclick="setUI({adminFeeStudentId:'${st.id}'})"><span>${esc(st.name)}</span>${tag}</button>`;
-            }).join("")
-          }
-        </div>
-      </div>
-      <div class="card pad">
-        <div class="section-title"><h2>Update fee payment</h2></div>
-        <form onsubmit="return submitAdminFee(event)">
-          <label class="field"><span class="field-label">Selected student</span><input class="input" disabled value="${esc(selectedName)}" /></label>
-          <label class="field"><span class="field-label">Term</span>
-            <select class="input" onchange="setUI({adminFeeTerm:this.value})">
-              ${["1st Term","2nd Term","3rd Term"].map(t=>`<option ${t===term?'selected':''}>${t}</option>`).join("")}
-            </select>
-          </label>
-          <label class="field"><span class="field-label">Amount due (₦)</span><input class="input" type="number" min="0" id="adminFeeDue" value="${existing?existing.amountDue:''}" /></label>
-          <label class="field"><span class="field-label">Amount paid (₦)</span><input class="input" type="number" min="0" id="adminFeePaid" value="${existing?existing.amountPaid:''}" /></label>
-          <button class="btn primary block" type="submit">Save payment record</button>
-        </form>
-      </div>
-    </div>
-    ${feeAdjustmentPanel(selectedId, term, "admin")}`;
-  } else if (tab === "subjects"){
-    inner = `<div class="card pad" style="max-width:420px;">
-      <div class="section-title"><h2>Manage subjects</h2></div>
-      <form onsubmit="return addSubject(event)" style="display:flex; gap:8px; margin-bottom:16px;">
-        <input class="input" id="newSubject" placeholder="e.g. Geography" />
-        <button class="btn navy" type="submit">+</button>
-      </form>
-      ${state.subjects.map(sub => `<div class="subject-row"><span style="color:var(--navy);">${esc(sub)}</span><button onclick="removeSubject('${esc(sub).replace(/'/g,"\\'")}')">✕</button></div>`).join("")}
-    </div>`;
-  } else if (tab === "classes"){
-    inner = `<div class="card pad" style="max-width:420px;">
-      <div class="section-title"><h2>Manage classes</h2></div>
-      <p class="section-sub">e.g. JSS 1, JSS 2, JSS 3, SS 1, SS 2, SS 3.</p>
-      <form onsubmit="return addClass(event)" style="display:flex; gap:8px; margin-bottom:16px;">
-        <input class="input" id="newClass" placeholder="e.g. SS 3" />
-        <button class="btn navy" type="submit">+</button>
-      </form>
-      ${state.classes.map(c => `<div class="subject-row"><span style="color:var(--navy);">${esc(c)}</span><button onclick="removeClass('${esc(c).replace(/'/g,"\\'")}')">✕</button></div>`).join("")}
-    </div>`;
-  } else if (tab === "sessions"){
-    inner = `<div class="card pad" style="max-width:460px;">
-      <div class="section-title"><h2>Academic sessions</h2></div>
-      <p class="section-sub">e.g. 2025/2026. Results, class rankings and report cards are grouped by session and term. The current session is what new scores default to.</p>
-      <form onsubmit="event.preventDefault(); addSession(document.getElementById('newSession').value); return false;" style="display:flex; gap:8px; margin-bottom:16px;">
-        <input class="input" id="newSession" placeholder="e.g. 2026/2027" value="${esc(state.ui.newSession||"")}" oninput="state.ui.newSession=this.value" />
-        <button class="btn navy" type="submit">+</button>
-      </form>
-      ${state.sessions.map(sess => `
-        <div class="row-item">
-          <div><p class="row-title">${esc(sess)}</p>${sess===state.currentSession ? pill("good","Current session") : ""}</div>
-          <div class="row-actions">
-            ${sess!==state.currentSession ? `<button class="btn navy sm" onclick="setCurrentSession('${esc(sess).replace(/'/g,"\\'")}')">Make current</button>` : ""}
-            <button class="btn danger sm" onclick="removeSession('${esc(sess).replace(/'/g,"\\'")}')">Remove</button>
-          </div>
-        </div>`).join("")}
-    </div>`;
-  } else if (tab === "students"){
-    const students = state.users.filter(u => u.role==="student");
-    const classFilter = state.ui.studentClassFilter || "all";
-    const addClass = state.ui.studentAddClass || state.classes[0] || "";
-    inner = `<div class="card pad">
-      <div class="section-title"><h2>Add a student</h2></div>
-      <p class="section-sub">Enter the roll directly — no signup needed. A default login is created for each student.</p>
-      <form onsubmit="return handleAddStudent(event)" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:22px; align-items:flex-end;">
-        <label class="field" style="flex:1; min-width:160px; margin-bottom:0;"><span class="field-label">Full name</span>
-          <input class="input" id="studentAddName" placeholder="e.g. Ibrahim Musa" value="${esc(state.ui.studentAddName||"")}" />
-        </label>
-        <label class="field" style="min-width:120px; margin-bottom:0;"><span class="field-label">Class</span>
-          <select class="input" onchange="setUI({studentAddClass:this.value})">
-            ${state.classes.map(c => `<option ${c===addClass?'selected':''}>${esc(c)}</option>`).join("")}
-          </select>
-        </label>
-        <label class="field" style="min-width:120px; margin-bottom:0;"><span class="field-label">Admission no. (optional)</span>
-          <input class="input" id="studentAddAdmissionNo" value="${esc(state.ui.studentAddAdmissionNo||"")}" />
-        </label>
-        <button class="btn navy" type="submit">Add</button>
-      </form>
-
-      <div class="section-title"><h2>Students by class</h2></div>
-      <p class="section-sub">${students.length} student${students.length===1?"":"s"} total. Listed alphabetically per class, with serial numbers that update automatically as students join or leave.</p>
-      <div style="margin-bottom:14px;">
-        <select class="input" onchange="setUI({studentClassFilter:this.value})">
-          <option value="all" ${classFilter==='all'?'selected':''}>All classes</option>
-          ${state.classes.map(c => `<option ${classFilter===c?'selected':''}>${esc(c)}</option>`).join("")}
-        </select>
-      </div>
-      ${(() => {
-        const groupNames = classFilter==="all"
-          ? state.classes.concat(students.some(st => !st.studentClass || !state.classes.includes(st.studentClass)) ? ["Unassigned"] : [])
-          : [classFilter];
-        const rowHTML = (st, i) => `
-          <div class="row-item">
-            <div style="display:flex; align-items:center; gap:10px;">
-              <span style="min-width:22px; font-weight:700; color:#8a8375; font-size:13px;">${i+1}.</span>
-              ${st.photo ? `<img class="stu-avatar" src="${esc(st.photo)}" alt="" />` : `<div class="stu-avatar-placeholder">📷</div>`}
-              <div>
-                <p class="row-title">${esc(st.name)}</p>
-                <p class="row-sub">@${esc(st.username)} · pass: ${esc(st.password)} · ${pill(st.status==="approved"?"good":"warn", st.status)}</p>
-              </div>
-            </div>
-            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end;">
-              <input class="input photo-input" type="file" accept="image/*" onchange="handlePhotoUpload('${st.id}', this)" />
-              <input class="input" style="width:130px; padding:7px 10px; font-size:12px;" placeholder="Admission no." value="${esc(st.admissionNo||"")}" onchange="setStudentAdmissionNo('${st.id}', this.value)" />
-              <select class="input" style="width:auto; padding:7px 10px; font-size:12px;" onchange="setStudentClass('${st.id}', this.value)">
-                ${state.classes.map(c => `<option ${(st.studentClass||state.classes[0])===c?'selected':''}>${esc(c)}</option>`).join("")}
-              </select>
-            </div>
-          </div>`;
-        return groupNames.map(cls => {
-          const group = students.filter(st => (st.studentClass || "Unassigned")===cls)
-            .sort((a,b) => a.name.localeCompare(b.name));
-          if (group.length===0) return classFilter==="all" ? "" : `<div class="empty">No students in this class yet.</div>`;
-          return `
-            ${classFilter==="all" ? `<p class="section-sub" style="margin-top:18px; font-weight:700; color:var(--navy);">${esc(cls)} (${group.length})</p>` : ""}
-            ${group.map(rowHTML).join("")}
-          `;
-        }).join("");
-      })()}
-    </div>`;
-  } else if (tab === "users"){
-    inner = `<div class="card pad">
-      ${state.users.map(u => `
-        <div class="row-item">
-          <div><p class="row-title">${esc(u.name)}</p><p class="row-sub">@${esc(u.username)} · ${esc(u.role)}${u.role==="student"?` · ${esc(u.studentClass||"Unassigned")}`:""}</p></div>
-          ${pill(u.status==="approved"?"good":"warn", u.status)}
-        </div>`).join("")}
-    </div>`;
-  } else {
-    const stamp = new Date().toLocaleString();
-    inner = `<div class="card pad" style="max-width:460px;">
-      <div class="section-title"><h2>Backup &amp; restore</h2></div>
-      <p class="section-sub">A manual safety net while server syncing is unreliable. Download a backup file now and then, and restore it if records ever go missing.</p>
-      <button class="btn navy block" onclick="downloadBackup()" style="margin-bottom:12px;">Download backup (.json)</button>
-      <label class="field">
-        <span class="field-label">Restore from a backup file</span>
-        <input class="input" type="file" accept="application/json,.json" onchange="restoreBackup(event)" />
-      </label>
-      <p class="fine-note" style="text-align:left;">Restoring replaces every record currently in the portal — students, teachers, results, assignments and fees — with whatever is in the file. Last checked: ${esc(stamp)}.</p>
-    </div>`;
-  }
-
-  return `<div style="padding-top:24px;">
-    <div class="section-title"><h2>Admin dashboard — ${esc(s.name)}</h2></div>
-    ${tabsHTML([
-      {key:"approvals", label:"Approvals" + (pendingUsers.length?` (${pendingUsers.length})`:"")},
-      {key:"results", label:"Results" + (pendingResults.length?` (${pendingResults.length})`:"")},
-      {key:"resets", label:"Password resets" + (pendingResets.length?` (${pendingResets.length})`:"")},
-      {key:"sessions", label:"Sessions"},
-      {key:"classResults", label:"Class results"},
-      {key:"students", label:"Students"},
-      {key:"fees", label:"Fees & debt"},
-      {key:"subjects", label:"Subjects"},
-      {key:"classes", label:"Classes"},
-      {key:"users", label:"All users"},
-      {key:"backup", label:"Backup"},
-    ], tab, "setAdminTab")}
-    ${inner}
-  </div>`;
-}
-function addClass(e){
-  e.preventDefault();
-  const v = document.getElementById("newClass").value.trim();
-  if (!v || state.classes.includes(v)) return false;
-  persistClasses(state.classes.concat([v]));
-  notify("Class added.");
-  render();
-  return false;
-}
-function removeClass(cls){
-  persistClasses(state.classes.filter(x=>x!==cls));
-  notify("Class removed.");
-  render();
-}
-function handleAddStudent(e){
-  e.preventDefault();
-  const name = document.getElementById("studentAddName").value;
-  const admissionNo = document.getElementById("studentAddAdmissionNo").value;
-  const cls = state.ui.studentAddClass || state.classes[0] || "";
-  addStudent(name, cls, admissionNo);
-  return false;
-}
-function resizeImageFile(file, maxDim, quality){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        let { width, height } = img;
-        if (width > height && width > maxDim){ height = Math.round(height*(maxDim/width)); width = maxDim; }
-        else if (height >= width && height > maxDim){ width = Math.round(width*(maxDim/height)); height = maxDim; }
-        const canvas = document.createElement("canvas");
-        canvas.width = width; canvas.height = height;
-        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL("image/jpeg", quality));
-      };
-      img.onerror = () => reject(new Error("Not a readable image."));
-      img.src = reader.result;
-    };
-    reader.onerror = () => reject(new Error("Could not read that file."));
-    reader.readAsDataURL(file);
-  });
-}
-async function handlePhotoUpload(studentId, input){
-  const file = input.files && input.files[0];
-  if (!file) return;
-  if (!file.type.startsWith("image/")){ notify("Please choose an image file.", "bad"); return; }
+async function loadPendingSignups(){
+  const el = document.getElementById("tabContent");
+  el.innerHTML = `<div class="loading">Loading pending signups…</div>`;
   try {
-    const dataUrl = await resizeImageFile(file, 320, 0.75);
-    persistUsers(state.users.map(u => u.id===studentId ? { ...u, photo: dataUrl } : u));
-    render();
-    notify("Photo updated.");
-  } catch (e) {
-    notify(e.message || "Could not read that image.", "bad");
-  }
-}
-function makeUniqueUsername(name){
-  let base = name.toLowerCase().trim().replace(/[^a-z\s]/g,"").trim().replace(/\s+/g,".");
-  if (!base) base = "student";
-  let candidate = base, n = 1;
-  while (state.users.some(u => u.username.toLowerCase()===candidate)){
-    n += 1;
-    candidate = base + n;
-  }
-  return candidate;
-}
-function addStudent(name, cls, admissionNo){
-  name = (name||"").trim();
-  admissionNo = (admissionNo||"").trim();
-  if (!name){ notify("Enter the student's name.", "bad"); return; }
-  if (admissionNo && state.users.some(u => u.role==="student" && (u.admissionNo||"").toLowerCase()===admissionNo.toLowerCase())){
-    notify("Another student already has that admission number.", "bad");
-    return;
-  }
-  const username = makeUniqueUsername(name);
-  const password = "student123";
-  const student = { id: uid(), name, username, password, role:"student", status:"approved", studentClass: cls, admissionNo };
-  persistUsers(state.users.concat([student]));
-  setUI({ studentAddName:"", studentAddAdmissionNo:"" });
-  notify(`Added ${name}. Login — username: ${username}, password: ${password}`);
-}
-function setStudentClass(studentId, cls){
-  persistUsers(state.users.map(u => u.id===studentId ? { ...u, studentClass: cls } : u));
-  notify("Class updated.");
-  render();
-}
-function setStudentAdmissionNo(studentId, val){
-  const admissionNo = val.trim();
-  if (admissionNo && state.users.some(u => u.id!==studentId && u.role==="student" && (u.admissionNo||"").toLowerCase()===admissionNo.toLowerCase())){
-    notify("Another student already has that admission number.", "bad");
-    render();
-    return;
-  }
-  persistUsers(state.users.map(u => u.id===studentId ? { ...u, admissionNo: admissionNo || undefined } : u));
-  notify("Admission number updated.");
-  render();
-}
-function downloadBackup(){
-  const payload = {
-    exportedAt: new Date().toISOString(),
-    school: "Faith International Secondary School, Itobe",
-    users: state.users,
-    subjects: state.subjects,
-    classes: state.classes,
-    academics: state.academics,
-    fees: state.fees,
-    releases: state.releases,
-    passwordResets: state.passwordResets,
-    sessions: state.sessions,
-    currentSession: state.currentSession,
-  };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  const datePart = new Date().toISOString().slice(0,10);
-  a.href = url;
-  a.download = `fissi-portal-backup-${datePart}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-  notify("Backup downloaded.");
-}
-function restoreBackup(event){
-  const file = event.target.files && event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    try {
-      const data = JSON.parse(reader.result);
-      if (!data || !Array.isArray(data.users)) throw new Error("This doesn't look like a FISSI backup file.");
-      persistUsers(data.users || []);
-      persistSubjects(data.subjects || DEFAULT_SUBJECTS.slice());
-      persistClasses(data.classes || DEFAULT_CLASSES.slice());
-      persistAcademics(data.academics || { results: [], assignments: [] });
-      persistFees(data.fees || []);
-      persistReleases(data.releases || []);
-      persistPasswordResets(data.passwordResets || []);
-      persistSessions((data.sessions && data.sessions.length) ? data.sessions : DEFAULT_SESSIONS.slice());
-      const restoredSession = (data.currentSession && state.sessions.includes(data.currentSession)) ? data.currentSession : state.sessions[0];
-      state.currentSession = restoredSession;
-      saveKey(KEYS.currentSession, restoredSession);
-      render();
-      notify("Backup restored. All records have been replaced.");
-    } catch (e) {
-      notify("Couldn't read that file — " + e.message, "bad");
+    const data = await api("/api/admin/signups/pending");
+    const list = data.signups || [];
+    if (!list.length){
+      el.innerHTML = `<div class="card"><div class="empty"><b>All caught up</b>No signup requests are waiting for review.</div></div>`;
+      return;
     }
-  };
-  reader.onerror = () => notify("Couldn't read that file.", "bad");
-  reader.readAsText(file);
-}
-function decideUser(id, approve){
-  const next = approve ? state.users.map(u=>u.id===id?{...u,status:"approved"}:u) : state.users.filter(u=>u.id!==id);
-  persistUsers(next);
-  notify(approve ? "Account approved." : "Account rejected and removed.");
-  render();
-}
-function decideResult(id, approve){
-  const next = approve ? state.academics.results.map(r=>r.id===id?{...r,approved:true}:r) : state.academics.results.filter(r=>r.id!==id);
-  persistAcademics({ ...state.academics, results: next });
-  notify(approve ? "Result approved and released to student." : "Result rejected and removed.");
-  render();
-}
-function addSubject(e){
-  e.preventDefault();
-  const v = document.getElementById("newSubject").value.trim();
-  if (!v || state.subjects.includes(v)) return false;
-  persistSubjects(state.subjects.concat([v]));
-  notify("Subject added.");
-  render();
-  return false;
-}
-function removeSubject(sub){
-  persistSubjects(state.subjects.filter(x=>x!==sub));
-  notify("Subject removed.");
-  render();
+    el.innerHTML = `<div class="card">` + list.map(s => `
+      <div class="row">
+        <div class="row-main">
+          <div class="name">${s.fullName}</div>
+          <div class="sub">${s.email} · ${s.role}</div>
+        </div>
+        <div class="row-actions">
+          <button class="chip-btn approve" data-id="${s.id}" data-action="APPROVED">Approve</button>
+          <button class="chip-btn reject" data-id="${s.id}" data-action="REJECTED">Reject</button>
+        </div>
+      </div>
+    `).join("") + `</div>`;
+    el.querySelectorAll(".chip-btn").forEach(btn => {
+      btn.addEventListener("click", () => decideSignup(btn.dataset.id, btn.dataset.action));
+    });
+  } catch(err){
+    el.innerHTML = `<div class="card"><div class="empty"><b>Couldn't load signups</b>${err.message}</div></div>`;
+  }
 }
 
-init();
+async function decideSignup(id, action){
+  try {
+    await api(`/api/admin/signups/${id}`, { method:"PATCH", body: JSON.stringify({ signupStatus: action }) });
+    toast(action === "APPROVED" ? "Account approved." : "Account rejected.");
+    loadPendingSignups();
+  } catch(err){
+    toast(err.message, true);
+  }
+}
+
+async function loadAllUsers(){
+  const el = document.getElementById("tabContent");
+  el.innerHTML = `<div class="loading">Loading users…</div>`;
+  try {
+    const data = await api("/api/admin/users");
+    const list = data.users || [];
+    if (!list.length){
+      el.innerHTML = `<div class="card"><div class="empty"><b>No users yet</b></div></div>`;
+      return;
+    }
+    el.innerHTML = `<div class="card">` + list.map(u => `
+      <div class="row">
+        <div class="row-main">
+          <div class="name">${u.fullName}</div>
+          <div class="sub">${u.email} · ${u.role} · ${u.signupStatus}</div>
+        </div>
+      </div>
+    `).join("") + `</div>`;
+  } catch(err){
+    el.innerHTML = `<div class="card"><div class="empty"><b>Couldn't load users</b>${err.message}</div></div>`;
+  }
+}
+
+/* ---------- boot ---------- */
+function render(){
+  if (state.token && state.user) renderDashboard();
+  else renderLogin();
+}
+render();
 </script>
 </body>
 </html>
