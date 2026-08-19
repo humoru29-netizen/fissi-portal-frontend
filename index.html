@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>FISSI Connect — Faith International Secondary School, Itobe</title>
+  <!-- Firebase (read-only): pulls the resumption date the admin sets in the portal. -->
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -597,9 +600,46 @@
       nav { width: 100%; }
       .hero { padding: 3.2rem 1.25rem 3.8rem; }
     }
+    /* ========== RESUMPTION BANNER ========== */
+    #resumptionBanner {
+      display: none;
+      background: linear-gradient(90deg, #9C7A24, #C9A24B);
+      color: #0B1F3B;
+      text-align: center;
+      padding: 0.7rem 1rem;
+      font-weight: 700;
+      font-size: 0.95rem;
+      position: relative;
+    }
+    #resumptionBanner .rb-note {
+      font-weight: 500;
+      font-size: 0.85rem;
+      display: block;
+      margin-top: 2px;
+    }
+    #resumptionBanner .rb-close {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #0B1F3B;
+      cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+    }
   </style>
 </head>
 <body>
+
+  <!-- RESUMPTION BANNER -->
+  <div id="resumptionBanner">
+    <span id="rb-text"></span>
+    <button class="rb-close" onclick="document.getElementById('resumptionBanner').style.display='none'" aria-label="Dismiss">✕</button>
+  </div>
 
   <!-- HEADER -->
   <header>
@@ -816,6 +856,39 @@
     <p>© 2026 FISSI Connect · All rights reserved</p>
     <p style="margin-top:0.5rem; font-size:0.85rem; opacity:0.7;">In God We Trust</p>
   </footer>
+
+  <script>
+    // Read-only fetch of the resumption date the admin sets inside the portal.
+    // Uses the same Firebase project as portal.html; if it fails or isn't
+    // configured, the banner simply stays hidden — nothing else breaks.
+    (function(){
+      const FIREBASE_CONFIG = {
+        apiKey: "AIzaSyAFdZFTMeaTfM73h8_8aN2cOvb37ALk1Sg",
+        authDomain: "fissi-portal.firebaseapp.com",
+        projectId: "fissi-portal",
+        storageBucket: "fissi-portal.firebasestorage.app",
+        messagingSenderId: "147937468957",
+        appId: "1:147937468957:web:ecf2cb179c541c4ad75cf4",
+      };
+      try {
+        if (!window.firebase) return;
+        firebase.initializeApp(FIREBASE_CONFIG);
+        const db = firebase.firestore();
+        db.collection("fissi_data").doc("fissi:resumptionDate").get().then(snap => {
+          if (!snap.exists) return;
+          const raw = snap.data().value;
+          if (!raw) return;
+          const rd = JSON.parse(raw);
+          if (!rd || !rd.date) return;
+          const dateStr = new Date(rd.date).toLocaleDateString("en-GB", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+          document.getElementById("rb-text").innerHTML = "📅 Next term begins: " + dateStr + (rd.note ? '<span class="rb-note">' + rd.note.replace(/</g,"&lt;") + "</span>" : "");
+          document.getElementById("resumptionBanner").style.display = "block";
+        }).catch(err => console.warn("Resumption date fetch failed:", err));
+      } catch (e) {
+        console.warn("Firebase not available for resumption banner:", e);
+      }
+    })();
+  </script>
 
 </body>
 </html>
