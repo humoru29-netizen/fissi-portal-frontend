@@ -1494,6 +1494,40 @@ function sortStudentsClassOrder(list){
     return (a.name||"").localeCompare(b.name||"");
   });
 }
+const PROMOTION_PASS_MARK = 40; // minimum cumulative session average (%) required for promotion
+
+// Averages a student's approved per-term averages across all three terms of a
+// session, to give an end-of-session (3rd Term) cumulative average.
+function cumulativeSessionStats(studentId, session){
+  const perTerm = TERMS.map(term => {
+    const results = state.academics.results.filter(r => r.studentId===studentId && r.session===session && r.term===term && r.approved);
+    const total = results.reduce((s,r)=>s+Number(r.score),0);
+    const count = results.length;
+    const average = count ? total/count : null;
+    return { term, average, count };
+  });
+  const withScores = perTerm.filter(t => t.average!=null);
+  const cumulativeAverage = withScores.length ? withScores.reduce((s,t)=>s+t.average,0)/withScores.length : null;
+  return { perTerm, cumulativeAverage, termsCounted: withScores.length };
+}
+
+// Decides promotion / repeat / graduation wording based on cumulative average
+// and the student's position in the ordered class list (state.classes).
+function promotionStatement(studentClass, cumulativeAverage){
+  if (cumulativeAverage == null) return null;
+  const idx = state.classes.indexOf(studentClass);
+  const isFinalClass = idx === -1 || idx === state.classes.length - 1;
+  const passed = cumulativeAverage >= PROMOTION_PASS_MARK;
+  if (!passed){
+    return { status: "repeat", label: "NOT PROMOTED", text: `Has not met the promotion average and is to repeat ${esc(studentClass)} next session.` };
+  }
+  if (isFinalClass){
+    return { status: "graduate", label: "GRADUATING", text: `Has successfully completed ${esc(studentClass)} and is graduating this session.` };
+  }
+  const nextClass = state.classes[idx+1];
+  return { status: "promoted", label: "PROMOTED", text: `Promoted to ${esc(nextClass)} for the next session.` };
+}
+
 function classResultsFor(studentClass, session, term){
   const students = state.users.filter(u => u.role==="student" && u.status==="approved" && u.studentClass===studentClass);
   const rows = students.map(st => {
@@ -1557,6 +1591,20 @@ function reportCardHTML(studentId, session, term){
       <span>Average: ${average.toFixed(1)}%</span>
       <span>Position: ${posText}</span>
     </div>
+    ${term === "3rd Term" ? (() => {
+      const cum = cumulativeSessionStats(studentId, session);
+      const promo = promotionStatement(st.studentClass, cum.cumulativeAverage);
+      if (cum.cumulativeAverage == null || !promo) return "";
+      const badgeColor = promo.status === "promoted" ? "#1e7d34" : promo.status === "graduate" ? "#9C7A24" : "#B0272C";
+      return `
+    <div class="rc-summary" style="margin-top:6px; border-top:1px dashed #ccc; padding-top:8px;">
+      <span><b>End-of-Session Cumulative Average</b> (${cum.termsCounted}/3 terms): ${cum.cumulativeAverage.toFixed(1)}%</span>
+    </div>
+    <div style="margin-top:8px; padding:10px 14px; border:1.5px solid ${badgeColor}; border-radius:6px; text-align:center;">
+      <span style="font-weight:800; letter-spacing:1px; color:${badgeColor};">${promo.label}</span>
+      <div style="font-size:12.5px; color:#333; margin-top:2px;">${promo.text}</div>
+    </div>`;
+    })() : ""}
     <div class="rc-sign">
       <div>Class Teacher</div>
       <div>${PRINCIPAL_STAMP_SVG}Principal</div>
